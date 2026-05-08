@@ -74,6 +74,7 @@ const SECTIONS = [
   {
     title: 'Reference',
     items: [
+      { to: '/profile', label: 'My profile' },
       { to: '/glossary', label: 'Glossary' },
       { to: '/about', label: 'About this app' },
     ],

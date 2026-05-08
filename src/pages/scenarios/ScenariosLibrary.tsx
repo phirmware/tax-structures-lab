@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { WORKED } from '../../content/workedScenarios';
+import { LessonSummary } from '../../components/ui/LessonSummary';
+import { FounderMistakes } from '../../components/ui/FounderMistakes';
 
 export function ScenariosLibrary() {
   const [active, setActive] = useState(WORKED[0].id);
@@ -50,6 +52,10 @@ export function ScenariosLibrary() {
             For: {a.forWhom}
           </div>
 
+          <div className="mt-4">
+            <LessonSummary pageId={`scenarios/${a.id}`} />
+          </div>
+
           <div className="mt-4 flex flex-wrap gap-2">
             {a.patternsUsed.map((p) => (
               <span key={p} className="chip-accent">
@@ -83,6 +89,10 @@ export function ScenariosLibrary() {
                 <div className="font-mono text-sm font-semibold">{n.value}</div>
               </div>
             ))}
+          </div>
+
+          <div className="mt-5">
+            <FounderMistakes pageId={`scenarios/${a.id}`} />
           </div>
         </article>
       </div>

@@ -21,7 +21,9 @@ import { ScenarioDetail } from './pages/scenarios/ScenarioDetail';
 import { Glossary as GlossaryPage } from './pages/Glossary';
 import { About } from './pages/About';
 import { useAppState } from './state/AppState';
-import { Menu, X } from './components/ui/Icons';
+import { Menu } from './components/ui/Icons';
+import { AbbrScopeProvider } from './components/ui/Abbr';
+import { MyProfile } from './pages/MyProfile';
 
 export default function App() {
   const { state } = useAppState();
@@ -64,35 +66,38 @@ export default function App() {
           mobileOpen={mobileNav}
         />
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-10">
-          <Routes>
-            <Route path="/" element={<Home />} />
+          <AbbrScopeProvider>
+            <Routes>
+              <Route path="/" element={<Home />} />
 
-            <Route path="/foundations" element={<Navigate to="/foundations/1-1" replace />} />
-            <Route path="/foundations/:lessonId" element={<LessonPage />} />
+              <Route path="/foundations" element={<Navigate to="/foundations/1-1" replace />} />
+              <Route path="/foundations/:lessonId" element={<LessonPage />} />
 
-            <Route path="/structures" element={<StructuresOverview />} />
-            <Route path="/structures/compare" element={<StructureCompare />} />
-            <Route path="/structures/:structureId" element={<StructureDetail />} />
+              <Route path="/structures" element={<StructuresOverview />} />
+              <Route path="/structures/compare" element={<StructureCompare />} />
+              <Route path="/structures/:structureId" element={<StructureDetail />} />
 
-            <Route path="/lab" element={<CashFlowLab />} />
-            <Route path="/lab/scenarios" element={<LabScenarios />} />
-            <Route path="/lab/multi-year" element={<MultiYearLab />} />
+              <Route path="/lab" element={<CashFlowLab />} />
+              <Route path="/lab/scenarios" element={<LabScenarios />} />
+              <Route path="/lab/multi-year" element={<MultiYearLab />} />
 
-            <Route path="/uk" element={<UkOverview />} />
-            <Route path="/uk/:topic" element={<UkTopic />} />
+              <Route path="/uk" element={<UkOverview />} />
+              <Route path="/uk/:topic" element={<UkTopic />} />
 
-            <Route path="/patterns" element={<PatternsOverview />} />
-            <Route path="/patterns/exercise" element={<PatternsExercise />} />
+              <Route path="/patterns" element={<PatternsOverview />} />
+              <Route path="/patterns/exercise" element={<PatternsExercise />} />
 
-            <Route path="/scenarios" element={<ScenariosLibrary />} />
-            <Route path="/scenarios/saved" element={<SavedScenarios />} />
-            <Route path="/scenarios/:scenarioId" element={<ScenarioDetail />} />
+              <Route path="/scenarios" element={<ScenariosLibrary />} />
+              <Route path="/scenarios/saved" element={<SavedScenarios />} />
+              <Route path="/scenarios/:scenarioId" element={<ScenarioDetail />} />
 
-            <Route path="/glossary" element={<GlossaryPage />} />
-            <Route path="/about" element={<About />} />
+              <Route path="/profile" element={<MyProfile />} />
+              <Route path="/glossary" element={<GlossaryPage />} />
+              <Route path="/about" element={<About />} />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AbbrScopeProvider>
         </main>
         <footer className="border-t border-ink-200 px-4 py-4 text-center text-xs text-ink-500 dark:border-ink-800 dark:text-ink-400">
           Tax & Structures Lab · Educational only · Not advice · Verify all figures with a qualified adviser

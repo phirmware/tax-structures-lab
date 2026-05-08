@@ -2,7 +2,80 @@
 // Schema version lets us migrate or reset cleanly when the shape changes.
 
 const KEY = 'tsl:state';
-const SCHEMA_VERSION = 1;
+// v2 introduces personalProfile (the "Show me with my numbers" memory).
+const SCHEMA_VERSION = 2;
+
+/**
+ * Personal profile: the user's own numbers. Each "Show me with my numbers"
+ * panel reads/writes the relevant variables from this single shared object,
+ * so once a value has been entered anywhere it pre-populates everywhere.
+ *
+ * All fields are optional — callers fall back to lesson defaults when the
+ * user hasn't entered a value yet.
+ */
+export interface PersonalProfile {
+  // Operating numbers
+  annualRevenue?: number;
+  annualCosts?: number;
+  // Personal extraction
+  personalIncomeNeed?: number;
+  ownerSalary?: number;
+  pensionContribution?: number;
+  // Misc planning inputs
+  rdEligibleSpend?: number;
+  // Time horizon used by deferral / retention demonstrations
+  yearsHorizon?: number;
+}
+
+export const PROFILE_FIELDS: Array<{
+  key: keyof PersonalProfile;
+  label: string;
+  hint: string;
+  kind: 'currency' | 'years';
+}> = [
+  {
+    key: 'annualRevenue',
+    label: 'Annual revenue',
+    hint: 'Money your business takes in across a year, before any costs.',
+    kind: 'currency',
+  },
+  {
+    key: 'annualCosts',
+    label: 'Annual costs',
+    hint: 'Costs of running the business — software, rent, contractors.',
+    kind: 'currency',
+  },
+  {
+    key: 'personalIncomeNeed',
+    label: 'Personal cash needed',
+    hint: 'How much you need to take home (after tax) to live on.',
+    kind: 'currency',
+  },
+  {
+    key: 'ownerSalary',
+    label: 'Director salary (Ltd)',
+    hint: 'The salary your company pays you directly.',
+    kind: 'currency',
+  },
+  {
+    key: 'pensionContribution',
+    label: 'Pension contribution',
+    hint: 'Annual employer pension contribution from your company.',
+    kind: 'currency',
+  },
+  {
+    key: 'rdEligibleSpend',
+    label: 'R&D eligible spend',
+    hint: 'Annual qualifying R&D spend, if relevant to you.',
+    kind: 'currency',
+  },
+  {
+    key: 'yearsHorizon',
+    label: 'Time horizon',
+    hint: 'How many years out you want to model deferral / retention.',
+    kind: 'years',
+  },
+];
 
 export interface SavedScenario {
   id: string;
@@ -42,6 +115,9 @@ export interface PersistedState {
   sidebarCollapsed: boolean;
   // Pattern recognition exercise progress
   patternQuiz: Record<string, string>; // exerciseId -> chosenPatternId
+  // Personal profile — "Show me with my numbers" memory.
+  // All fields optional so callers fall back to lesson defaults gracefully.
+  personalProfile: PersonalProfile;
 }
 
 export const DEFAULT_STATE: PersistedState = {
@@ -55,17 +131,38 @@ export const DEFAULT_STATE: PersistedState = {
   scenarios: [],
   sidebarCollapsed: false,
   patternQuiz: {},
+  personalProfile: {},
 };
+
+/**
+ * Migrate older persisted shapes forward without losing user data. We try to
+ * keep onboarding state, completion, bookmarks, notes, and saved scenarios
+ * across schema bumps; new fields fall back to their defaults.
+ */
+function migrate(parsed: any): PersistedState {
+  if (!parsed || typeof parsed !== 'object') return DEFAULT_STATE;
+  if (parsed.version === SCHEMA_VERSION) {
+    return { ...DEFAULT_STATE, ...parsed };
+  }
+  // v1 → v2: add personalProfile, bump version, keep everything else.
+  if (parsed.version === 1) {
+    return {
+      ...DEFAULT_STATE,
+      ...parsed,
+      personalProfile: {},
+      version: SCHEMA_VERSION,
+    };
+  }
+  // Unknown / future version — start clean rather than risk corrupting state.
+  return DEFAULT_STATE;
+}
 
 export function loadState(): PersistedState {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_STATE;
-    const parsed = JSON.parse(raw) as PersistedState;
-    if (!parsed || parsed.version !== SCHEMA_VERSION) {
-      return DEFAULT_STATE;
-    }
-    return { ...DEFAULT_STATE, ...parsed };
+    const parsed = JSON.parse(raw);
+    return migrate(parsed);
   } catch {
     return DEFAULT_STATE;
   }

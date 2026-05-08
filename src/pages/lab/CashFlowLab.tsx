@@ -50,9 +50,30 @@ const DEFAULTS: LabInputs = {
 };
 
 export function CashFlowLab() {
-  const { saveScenario } = useAppState();
+  const { saveScenario, state } = useAppState();
   const [inputs, setInputs] = useState<LabInputs>(DEFAULTS);
   const [scenarioName, setScenarioName] = useState('My scenario');
+  const profile = state.personalProfile;
+  const profileFieldsCount = [
+    profile.annualRevenue,
+    profile.annualCosts,
+    profile.personalIncomeNeed,
+    profile.ownerSalary,
+    profile.pensionContribution,
+    profile.rdEligibleSpend,
+  ].filter((v) => typeof v === 'number').length;
+
+  const useMyProfile = () => {
+    setInputs((p) => ({
+      ...p,
+      revenue: profile.annualRevenue ?? p.revenue,
+      costs: profile.annualCosts ?? p.costs,
+      desiredCash: profile.personalIncomeNeed ?? p.desiredCash,
+      ownerSalary: profile.ownerSalary ?? p.ownerSalary,
+      pensionContribution: profile.pensionContribution ?? p.pensionContribution,
+      rdEligibleSpend: profile.rdEligibleSpend ?? p.rdEligibleSpend,
+    }));
+  };
 
   const results = useMemo(() => {
     const sole = soleTraderResult(inputs.revenue, inputs.costs);
@@ -254,6 +275,26 @@ export function CashFlowLab() {
             >
               Reset to defaults
             </button>
+
+            <button
+              className="btn-secondary w-full"
+              onClick={useMyProfile}
+              disabled={profileFieldsCount === 0}
+              title={
+                profileFieldsCount === 0
+                  ? 'Save numbers from any lesson first to populate your profile'
+                  : `Pull ${profileFieldsCount} value${profileFieldsCount === 1 ? '' : 's'} from your saved profile`
+              }
+            >
+              Use my profile{profileFieldsCount > 0 ? ` (${profileFieldsCount})` : ''}
+            </button>
+            <p className="text-[11px] text-ink-500 dark:text-ink-400">
+              Pulls revenue, costs, income need, salary, pension and R&D spend from your{' '}
+              <Link to="/profile" className="underline">
+                profile
+              </Link>{' '}
+              if you've saved them anywhere.
+            </p>
           </div>
 
           <div className="card-pad space-y-2">

@@ -3,6 +3,9 @@ import { getUkTopic, UK_TOPICS } from '../../content/ukTopics';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { NotesPanel } from '../../components/ui/NotesPanel';
+import { LessonSummary } from '../../components/ui/LessonSummary';
+import { FounderMistakes } from '../../components/ui/FounderMistakes';
+import { UkTopicInteractives } from './UkTopicInteractives';
 
 export function UkTopic() {
   const { topic = '' } = useParams();
@@ -30,8 +33,11 @@ export function UkTopic() {
         description={t.summary}
         pageId={`uk/${t.id}`}
       />
+      <LessonSummary pageId={`uk/${t.id}`} />
       <DisclaimerBanner compact />
       <article className="card-pad prose-app">{t.body()}</article>
+      <UkTopicInteractives topicId={t.id} />
+      <FounderMistakes pageId={`uk/${t.id}`} />
       <nav className="grid gap-3 sm:grid-cols-2">
         {prev ? (
           <Link

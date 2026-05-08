@@ -12,6 +12,10 @@ import { formatGBP } from '../../lib/format';
 import { NotesPanel } from '../../components/ui/NotesPanel';
 import { useState } from 'react';
 import { Slider } from '../../components/ui/Slider';
+import { LessonSummary } from '../../components/ui/LessonSummary';
+import { FounderMistakes } from '../../components/ui/FounderMistakes';
+import { ShowWithMyNumbers } from '../../components/ui/ShowWithMyNumbers';
+import { useAppState } from '../../state/AppState';
 
 const REVENUE = 100_000;
 const COSTS = 30_000;
@@ -20,9 +24,11 @@ const DESIRED = 40_000;
 export function StructureDetail() {
   const { structureId = 'sole-trader' } = useParams();
   const s = getStructure(structureId);
-  const [revenue, setRevenue] = useState(REVENUE);
-  const [costs, setCosts] = useState(COSTS);
-  const [desired, setDesired] = useState(DESIRED);
+  const { state } = useAppState();
+  const profile = state.personalProfile;
+  const [revenue, setRevenue] = useState(profile.annualRevenue ?? REVENUE);
+  const [costs, setCosts] = useState(profile.annualCosts ?? COSTS);
+  const [desired, setDesired] = useState(profile.personalIncomeNeed ?? DESIRED);
 
   if (!s) {
     return (
@@ -63,6 +69,9 @@ export function StructureDetail() {
           </Link>
         }
       />
+
+      <LessonSummary pageId={`structures/${s.id}`} />
+
       <DisclaimerBanner compact />
 
       <section className="card-pad">
@@ -71,6 +80,53 @@ export function StructureDetail() {
         <p className="mt-3 text-sm italic text-accent-700 dark:text-accent-300">
           Pattern: {s.patternNote}
         </p>
+        <ShowWithMyNumbers
+          title="Show me with my numbers — at this structure"
+          inputs={[
+            { key: 'annualRevenue', defaultValue: REVENUE, min: 0, step: 1_000 },
+            { key: 'annualCosts', defaultValue: COSTS, min: 0, step: 500 },
+            { key: 'personalIncomeNeed', defaultValue: DESIRED, min: 0, step: 500 },
+          ]}
+          render={({ values }) => {
+            const r = values.annualRevenue ?? REVENUE;
+            const c = values.annualCosts ?? COSTS;
+            const d = values.personalIncomeNeed ?? DESIRED;
+            const _sole = soleTraderResult(r, c);
+            const _ltd = ltdResult({
+              revenue: r,
+              costs: c,
+              ownerSalary: 12_570,
+              desiredCash: d,
+            });
+            return (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-ink-200 p-3 dark:border-ink-700">
+                  <div className="text-[10px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                    Sole trader — net to you
+                  </div>
+                  <div className="font-mono text-sm">{formatGBP(_sole.netToOwner)}</div>
+                  <div className="mt-1 text-[11px] text-danger-500">
+                    Tax {formatGBP(_sole.totalTax)}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-ink-200 p-3 dark:border-ink-700">
+                  <div className="text-[10px] uppercase tracking-wider text-ink-500 dark:text-ink-400">
+                    Ltd — net to you + retained
+                  </div>
+                  <div className="font-mono text-sm">
+                    {formatGBP(_ltd.ownerTotalNet)} +{' '}
+                    <span className="text-yellow-700 dark:text-yellow-300">
+                      {formatGBP(_ltd.companyRetained)}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-[11px] text-danger-500">
+                    Tax {formatGBP(_ltd.totalTaxToHmrc)}
+                  </div>
+                </div>
+              </div>
+            );
+          }}
+        />
       </section>
 
       {showsFlow ? (
@@ -186,6 +242,8 @@ export function StructureDetail() {
           </ul>
         </Card>
       </section>
+
+      <FounderMistakes pageId={`structures/${s.id}`} />
 
       <section className="card-pad">
         <h2 className="heading-2">Other structures to compare</h2>

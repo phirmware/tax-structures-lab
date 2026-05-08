@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { PATTERNS } from '../../content/patterns';
+import { LessonSummary } from '../../components/ui/LessonSummary';
 
 export function PatternsOverview() {
   return (
@@ -27,6 +28,9 @@ export function PatternsOverview() {
               <span className="chip-accent text-[10px]">{p.id}</span>
             </div>
             <p className="mt-1 lede">{p.oneLiner}</p>
+            <div className="mt-3">
+              <LessonSummary pageId={`patterns/${p.id}`} />
+            </div>
             <p className="mt-3 text-sm text-ink-700 dark:text-ink-300">{p.why}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div>

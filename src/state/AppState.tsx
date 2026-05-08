@@ -13,6 +13,7 @@ import {
   saveState,
   uid,
   type PersistedState,
+  type PersonalProfile,
   type SavedScenario,
 } from '../lib/storage';
 
@@ -37,6 +38,9 @@ interface AppStateValue {
   recordPatternAnswer: (exerciseId: string, patternId: string) => void;
   // Reset
   resetAll: () => void;
+  // Personal profile ("Show me with my numbers" memory)
+  updateProfile: (patch: Partial<PersonalProfile>) => void;
+  resetProfile: () => void;
   // Dark mode
   dark: boolean;
   setDark: (d: boolean) => void;
@@ -133,6 +137,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       resetAll: () => {
         setRawState(DEFAULT_STATE);
       },
+      updateProfile: (patch) =>
+        setRawState((s) => {
+          // Strip undefined / NaN so the stored object stays clean.
+          const merged: PersonalProfile = { ...s.personalProfile };
+          for (const [k, v] of Object.entries(patch) as [
+            keyof PersonalProfile,
+            number | undefined,
+          ][]) {
+            if (v === undefined || v === null || (typeof v === 'number' && !isFinite(v))) {
+              delete merged[k];
+            } else {
+              merged[k] = v as never;
+            }
+          }
+          return { ...s, personalProfile: merged };
+        }),
+      resetProfile: () =>
+        setRawState((s) => ({ ...s, personalProfile: {} })),
     }),
     [state, setState, dark, setDark],
   );

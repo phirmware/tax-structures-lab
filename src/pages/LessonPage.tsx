@@ -5,6 +5,9 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { DisclaimerBanner } from '../components/ui/Disclaimer';
 import { NotesPanel } from '../components/ui/NotesPanel';
 import { Check } from '../components/ui/Icons';
+import { LessonSummary } from '../components/ui/LessonSummary';
+import { FounderMistakes } from '../components/ui/FounderMistakes';
+import { LessonInteractives } from '../content/lessonsContent/LessonInteractives';
 import { LessonOne } from '../content/lessonsContent/LessonOne';
 import { LessonTwo } from '../content/lessonsContent/LessonTwo';
 import { LessonThree } from '../content/lessonsContent/LessonThree';
@@ -83,11 +86,17 @@ export function LessonPage() {
         ))}
       </div>
 
+      <LessonSummary pageId={`foundations/${lesson.id}`} />
+
       <DisclaimerBanner compact />
 
       <article className="card-pad prose-app">
         {Body ? <Body /> : <p>Lesson content coming soon.</p>}
       </article>
+
+      <LessonInteractives lessonId={lesson.id} />
+
+      <FounderMistakes pageId={`foundations/${lesson.id}`} />
 
       <nav className="grid gap-3 sm:grid-cols-3">
         {prev ? (
