@@ -7,7 +7,12 @@ import {
   soleTraderResult,
   corporationTax,
 } from '../../lib/tax';
-import { CT_SMALL_RATE, IT_HIGHER } from '../../lib/constants';
+import {
+  CT_MAIN_RATE,
+  CT_SMALL_RATE,
+  DIV_HIGHER,
+  IT_HIGHER,
+} from '../../lib/constants';
 import { formatGBP, formatPct } from '../../lib/format';
 
 /**
@@ -308,6 +313,7 @@ function PensionPanel() {
       min: 0,
       max: 60_000,
       step: 500,
+      hint: 'Pre-tax company profit being directed to one route or the other.',
     },
     { key: 'yearsHorizon', defaultValue: 20, min: 1, max: 40, step: 1 },
   ];
@@ -318,42 +324,86 @@ function PensionPanel() {
       render={({ values }) => {
         const contribution = values.pensionContribution ?? 0;
         const years = Math.max(1, Math.round(values.yearsHorizon ?? 1));
-        // Rough: extracting £X via dividend costs CT + dividend tax.
-        // Assume 19% CT then 33.75% higher dividend rate for an illustrative figure.
-        const grossNeededForDividend = contribution / (1 - 0.3375); // make div pay equal £contribution net? Simplified
-        // Compare end-pots after `years` at 7% gross.
-        const insideRate = 0.07; // pension grows tax-free
-        const outsideRate = 0.07 * (1 - 0.18); // CGT-light personal investing
-        const pensionPot = contribution * Math.pow(1 + insideRate, years);
-        // For the dividend route: starting from £contribution gross, you receive ~£0.4865 net per £1 (illustrative).
-        const personalStart = contribution * 0.4865;
-        const personalPot = personalStart * Math.pow(1 + outsideRate, years);
+        const growth = 0.07;
+
+        // --- Dividend route: company pays CT, you take a dividend, you pay
+        // dividend tax, you invest the rest. Use main-rate CT (25%) and
+        // higher-rate dividend (33.75%) as the relevant case for a profitable
+        // founder making this trade-off. ISA-wrapped — no further tax drag.
+        const ctPaid = contribution * CT_MAIN_RATE;
+        const postCt = contribution - ctPaid; // dividend declared
+        const dividendTax = postCt * DIV_HIGHER;
+        const personalStart = postCt - dividendTax;
+        const personalPot = personalStart * Math.pow(1 + growth, years);
+
+        // --- Pension route: full £contribution lands in the pension wrapper
+        // (employer contribution is deductible for CT, no NI, not personal
+        // income today). Tax-free growth inside the wrapper.
+        const pensionGross = contribution * Math.pow(1 + growth, years);
+        // On draw: 25% tax-free lump sum, 75% taxed at marginal income rate.
+        // Use higher-rate (40%) as the conservative default for someone with
+        // a meaningful pension; the panel notes this explicitly.
+        const drawMarginal = IT_HIGHER;
+        const lumpSum = pensionGross * 0.25;
+        const taxedPortion = pensionGross * 0.75;
+        const pensionNet = lumpSum + taxedPortion * (1 - drawMarginal);
+
         return (
           <div className="space-y-3">
             <p className="text-sm text-ink-700 dark:text-ink-300">
-              Compare £{Math.round(contribution).toLocaleString('en-GB')} of company profit either contributed straight to a pension, or extracted as a dividend (after CT + dividend tax) and invested personally.
+              Compare £{Math.round(contribution).toLocaleString('en-GB')} of pre-CT
+              company profit directed to (a) an employer pension contribution, or
+              (b) extracted as a dividend after CT and invested personally in an ISA.
             </p>
+
+            <div className="rounded-lg border border-ink-200 p-3 text-xs dark:border-ink-700">
+              <div className="font-semibold text-ink-700 dark:text-ink-200">
+                Dividend route — money landing in your hands
+              </div>
+              <div className="mt-1 grid grid-cols-2 gap-1 font-mono tabular-nums">
+                <span>Pre-CT company profit</span>
+                <span className="text-right">{formatGBP(contribution)}</span>
+                <span>− CT @ {Math.round(CT_MAIN_RATE * 100)}%</span>
+                <span className="text-right text-danger-500">−{formatGBP(ctPaid)}</span>
+                <span>= Dividend declared</span>
+                <span className="text-right">{formatGBP(postCt)}</span>
+                <span>− Dividend tax @ {(DIV_HIGHER * 100).toFixed(2)}%</span>
+                <span className="text-right text-danger-500">−{formatGBP(dividendTax)}</span>
+                <span className="font-semibold">= Lands in your ISA</span>
+                <span className="text-right font-semibold text-accent-700 dark:text-accent-300">
+                  {formatGBP(personalStart)}
+                </span>
+              </div>
+            </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
               <Box
-                label={`Pension pot after ${years} yrs`}
-                value={formatGBP(pensionPot)}
+                label={`Pension net of draw tax — ${years} yrs`}
+                value={formatGBP(pensionNet)}
                 tone="ok"
               />
               <Box
-                label={`Personal pot after ${years} yrs (dividend route)`}
+                label={`Personal ISA pot — ${years} yrs`}
                 value={formatGBP(personalPot)}
                 tone="warn"
               />
+              <Box
+                label={`Pension pre-draw-tax pot — ${years} yrs`}
+                value={formatGBP(pensionGross)}
+              />
+              <Box
+                label="Pension advantage (net)"
+                value={formatGBP(Math.max(0, pensionNet - personalPot))}
+                tone="ok"
+              />
             </div>
+
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
-              Illustrative — uses 7% gross return, 19% CT, 33.75% dividend tax, 18% personal CGT-equivalent drag, no future income tax on draw. Real figures vary; ignores annual allowance taper and tax-free lump sum.
-            </p>
-            <p className="text-[12px] text-ink-500 dark:text-ink-400">
-              For reference: extracting the same £
-              {Math.round(contribution).toLocaleString('en-GB')} via dividend would
-              cost about £
-              {Math.round(grossNeededForDividend - contribution).toLocaleString('en-GB')}{' '}
-              of personal tax on top of corporation tax.
+              Assumptions: 7% gross return, 25% CT main rate, 33.75% higher-rate
+              dividend, ISA wrapper (no growth drag), pension drawn with 25%
+              tax-free lump sum and 75% at 40% marginal income tax. Real figures
+              vary with your CT band, dividend band, draw strategy, and ISA
+              capacity. Ignores annual-allowance taper and pension lifetime rules.
             </p>
           </div>
         );
