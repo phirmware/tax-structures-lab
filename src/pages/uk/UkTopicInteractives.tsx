@@ -6,6 +6,7 @@ import { computeSalaryAndDividends, ltdResult } from '../../lib/tax';
 import {
   CT_MAIN_RATE,
   CT_SMALL_RATE,
+  DIV_HIGHER,
   PERSONAL_ALLOWANCE,
   VAT_REGISTRATION_THRESHOLD,
 } from '../../lib/constants';
@@ -209,32 +210,47 @@ function VatPanel() {
       render={({ values }) => {
         const r = values.annualRevenue ?? 0;
         const over = r - VAT_REGISTRATION_THRESHOLD;
-        const monthlyAllowance = (VAT_REGISTRATION_THRESHOLD - r) / 12;
+        const monthlyHeadroom = (VAT_REGISTRATION_THRESHOLD - r) / 12;
+        // For a B2C business absorbing VAT rather than passing it on, the
+        // effective revenue hit on already-priced sales is 1 - 1/1.20 = 16.67%.
+        const b2cAbsorbHit = r * (1 - 1 / 1.2);
         return (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Box
-              label="VAT threshold"
-              value={formatGBP(VAT_REGISTRATION_THRESHOLD)}
-            />
-            <Box
-              label={over >= 0 ? 'Over threshold by' : 'Headroom remaining'}
-              value={formatGBP(Math.abs(over))}
-              tone={over >= 0 ? 'bad' : 'ok'}
-            />
-            {over < 0 && (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Box
-                label="Average per month before crossing"
-                value={formatGBP(Math.max(0, monthlyAllowance))}
-                full
+                label="VAT threshold"
+                value={formatGBP(VAT_REGISTRATION_THRESHOLD)}
               />
-            )}
+              <Box
+                label={over >= 0 ? 'Over threshold by' : 'Headroom remaining'}
+                value={formatGBP(Math.abs(over))}
+                tone={over >= 0 ? 'bad' : 'ok'}
+              />
+              {over < 0 && (
+                <Box
+                  label="Average extra revenue per month before crossing"
+                  value={formatGBP(Math.max(0, monthlyHeadroom))}
+                  full
+                />
+              )}
+              {over >= 0 && (
+                <Box
+                  label="VAT collected on £10k of sales (passed to HMRC, not yours)"
+                  value={formatGBP(2_000)}
+                  tone="warn"
+                  full
+                />
+              )}
+            </div>
             {over >= 0 && (
-              <Box
-                label="VAT you may need to charge on the next £10k of sales"
-                value={formatGBP(2_000)}
-                tone="warn"
-                full
-              />
+              <p className="text-[12px] text-ink-500 dark:text-ink-400">
+                VAT is collected from customers and remitted to HMRC — it isn't
+                a cost you pay out of margin <em>if</em> you can pass it on. For
+                B2B with VAT-registered buyers, charging VAT is neutral (they
+                reclaim it). For B2C, you either raise prices by 20% or absorb
+                the hit — at your current turnover, absorbing it would reduce
+                effective revenue by roughly {formatGBP(b2cAbsorbHit)} a year.
+              </p>
             )}
           </div>
         );
@@ -253,34 +269,50 @@ function PensionExtractionPanel() {
       inputs={inputs}
       render={({ values }) => {
         const contrib = values.pensionContribution ?? 0;
-        // Saved CT at small-profits rate, plus avoided NI + dividend tax (illustrative).
-        const ctSaved = contrib * CT_SMALL_RATE;
+        // Pension contribution is deductible for CT, so the company saves CT on
+        // exactly £contrib of profit. We show this at both the small-profits
+        // and main rates so the user can see which applies to their situation.
+        const ctSavedSmall = contrib * CT_SMALL_RATE;
         const ctSavedMain = contrib * CT_MAIN_RATE;
-        const dividendEquivalentNet = contrib * 0.4865; // illustrative round trip
+
+        // Dividend round-trip on the same £contrib of pre-CT profit:
+        // company pays CT, then declares dividend, then dividend tax is paid.
+        // Use main-rate CT (25%) and higher-rate dividend (33.75%) for the
+        // relevant comparison case.
+        const dividendNetMain = contrib * (1 - CT_MAIN_RATE) * (1 - DIV_HIGHER);
+        const dividendNetSmall = contrib * (1 - CT_SMALL_RATE) * (1 - DIV_HIGHER);
         return (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Box
-              label="CT saved (small-profits rate)"
-              value={formatGBP(ctSaved)}
-              tone="ok"
-            />
-            <Box
-              label="CT saved (main rate)"
-              value={formatGBP(ctSavedMain)}
-              tone="ok"
-            />
-            <Box
-              label="If extracted as dividend, you'd net about"
-              value={formatGBP(dividendEquivalentNet)}
-              tone="warn"
-              full
-            />
-            <Box
-              label="In a pension, you keep the full £"
-              value={formatGBP(contrib)}
-              tone="ok"
-              full
-            />
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Box
+                label="CT saved (small-profits rate, 19%)"
+                value={formatGBP(ctSavedSmall)}
+                tone="ok"
+              />
+              <Box
+                label="CT saved (main rate, 25%)"
+                value={formatGBP(ctSavedMain)}
+                tone="ok"
+              />
+              <Box
+                label="In a pension, the full £ goes in"
+                value={formatGBP(contrib)}
+                tone="ok"
+              />
+              <Box
+                label="If extracted as dividend (25% CT + 33.75% div tax)"
+                value={formatGBP(dividendNetMain)}
+                tone="warn"
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Same £{Math.round(contrib).toLocaleString('en-GB')} of pre-CT profit
+              lands as £{Math.round(contrib).toLocaleString('en-GB')} in a pension
+              wrapper, or {formatGBP(dividendNetMain)} (
+              {formatGBP(dividendNetSmall)} at 19% CT) personally after the
+              dividend round-trip. Pension is taxed on draw — see lesson 1.9 for
+              the long-horizon comparison.
+            </p>
           </div>
         );
       }}

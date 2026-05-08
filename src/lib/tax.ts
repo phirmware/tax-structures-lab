@@ -232,8 +232,14 @@ export function computeSalaryAndDividends(
   // Note: the £500 allowance still counts toward band usage.
   divRemaining -= dividendAllowanceUsed;
 
-  // Bands remaining for dividends: subtract whatever salary used in each band, and dividend-allowance use.
-  const usedTotalForBands = salaryTaxable + paOnDiv + dividendAllowanceUsed;
+  // Bands remaining for dividends. Two things consume band capacity:
+  //   - salaryTaxable: salary above PA sits in the bands.
+  //   - dividendAllowanceUsed: the £500 allowance is at 0% but still occupies
+  //     the band space it falls into (it's a rate slice, not extra room).
+  // Crucially, paOnDiv (dividend covered by leftover PA) does NOT consume any
+  // band — PA-covered income sits *below* the basic-rate band. Including it
+  // would artificially advance the user up the bands and over-charge tax.
+  const usedTotalForBands = salaryTaxable + dividendAllowanceUsed;
   const remainingInBasic = Math.max(0, basicEnd - usedTotalForBands);
   const usedAfterBasic = Math.max(0, usedTotalForBands - basicEnd);
   const remainingInHigher = Math.max(

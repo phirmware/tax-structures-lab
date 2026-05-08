@@ -5,9 +5,9 @@ import {
 import {
   ltdResult,
   soleTraderResult,
-  corporationTax,
 } from '../../lib/tax';
 import {
+  CGT_HIGHER,
   CT_MAIN_RATE,
   CT_SMALL_RATE,
   DIV_HIGHER,
@@ -172,45 +172,80 @@ function RetentionPanel() {
         const costs = values.annualCosts ?? 0;
         const need = values.personalIncomeNeed ?? 0;
         const years = Math.max(1, Math.round(values.yearsHorizon ?? 1));
-        const retained = ltdResult({
+        const ltd = ltdResult({
           revenue,
           costs,
           ownerSalary: 12_570,
           desiredCash: need,
         });
-        const annualRetained = retained.companyRetained;
-        // Simple compound projections — illustrative only.
-        const insideRate = 0.07 * (1 - CT_SMALL_RATE); // post-CT growth
-        const outsideRate = 0.07 * (1 - IT_HIGHER); // post-personal-tax growth
-        const compounding = (rate: number) => {
+        // companyRetained is post-CT cash already sitting inside the Ltd.
+        const annualRetained = ltd.companyRetained;
+
+        // Inside route: keep the £annualRetained inside the company. It grows
+        // gross at 7%, but corporate-rate tax applies to investment returns
+        // (illustrative — real CT on investment income depends on the company's
+        // overall band; we use small-profits as a conservative proxy).
+        const insideRate = 0.07 * (1 - CT_SMALL_RATE);
+
+        // Outside route: extract the same post-CT cash by paying a higher-rate
+        // dividend, then invest personally. Two natural personal venues:
+        //   - ISA (no further tax drag — capped at £20k/year, but used here as
+        //     the tax-efficient ceiling for what extraction can achieve)
+        //   - GIA (general investment account — 24% CGT on realised gains acts
+        //     as the long-run drag)
+        // We default to the GIA assumption for honesty; the ISA result is shown
+        // as the best-case alternative.
+        const personalAfterDivTax = annualRetained * (1 - DIV_HIGHER);
+        const giaRate = 0.07 * (1 - CGT_HIGHER);
+        const isaRate = 0.07;
+
+        const compounding = (annualPayIn: number, rate: number) => {
           let pot = 0;
-          for (let i = 0; i < years; i++) pot = (pot + annualRetained) * (1 + rate);
+          for (let i = 0; i < years; i++) pot = (pot + annualPayIn) * (1 + rate);
           return pot;
         };
-        const inside = compounding(insideRate);
-        const outside = compounding(outsideRate);
+        const inside = compounding(annualRetained, insideRate);
+        const outsideGia = compounding(personalAfterDivTax, giaRate);
+        const outsideIsa = compounding(personalAfterDivTax, isaRate);
         return (
           <div className="space-y-3">
             <Box
-              label={`Surplus retained inside the company each year`}
+              label="Surplus retained inside the company each year (post-CT)"
               value={formatGBP(annualRetained)}
               tone="ok"
               full
             />
-            <div className="grid gap-3 sm:grid-cols-2">
+            <Box
+              label={`If instead extracted as dividend, lands personally as`}
+              value={formatGBP(personalAfterDivTax)}
+              tone="warn"
+              full
+            />
+            <div className="grid gap-3 sm:grid-cols-3">
               <Box
-                label={`Pot after ${years} yrs — kept inside the Ltd`}
+                label={`Inside Ltd — ${years} yrs`}
                 value={formatGBP(inside)}
                 tone="ok"
               />
               <Box
-                label={`Pot after ${years} yrs — extracted then saved personally`}
-                value={formatGBP(outside)}
+                label={`Personal ISA — ${years} yrs`}
+                value={formatGBP(outsideIsa)}
+                tone="warn"
+              />
+              <Box
+                label={`Personal GIA — ${years} yrs`}
+                value={formatGBP(outsideGia)}
                 tone="warn"
               />
             </div>
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
-              Both pots assume 7% gross investment return. The retained version pays the lower corporate-rate tax drag; the extracted version pays your personal-rate drag. Illustrative only.
+              All three pots assume 7% gross return. Inside the Ltd, investment
+              returns face corporation tax (modelled at the 19% small-profits
+              rate). The two personal routes start with less because extracting
+              the surplus costs 33.75% higher-rate dividend tax — an ISA
+              wrapper then grows tax-free, a GIA pays 24% on realised gains.
+              Eventual extraction tax on the inside pot (dividend, BADR on
+              sale) isn't modelled; see lesson 1.9 and the Multi-year Lab.
             </p>
           </div>
         );
@@ -226,29 +261,61 @@ function DeductionsPanel() {
       defaultValue: 5_000,
       min: 0,
       step: 100,
-      hint: 'Imagine an extra £X of legitimate, deductible business spend in a year.',
+      hint: 'An extra £X of legitimate, deductible business spend in a year.',
     },
   ];
   return (
     <ShowWithMyNumbers
-      title="Show me with my numbers — what one £1,000 deduction is worth"
+      title="Show me with my numbers — what one deductible £ is worth"
       inputs={inputs}
       render={({ values }) => {
         const spend = values.annualCosts ?? 0;
-        const ctSavedSmall = corporationTax(spend).total;
-        const personalSaved40 = spend * 0.4;
+        // The marginal CT saving from deducting £spend is spend * marginal_CT_rate.
+        // Which marginal rate applies depends on the company's overall profit
+        // band; we show both endpoints honestly rather than picking one.
+        const savedAtSmallRate = spend * CT_SMALL_RATE;
+        const savedAtMainRate = spend * CT_MAIN_RATE;
+        // For a sole trader / personally deductible spend, the saving depends
+        // on the marginal personal-tax band. Show basic (20%) and higher (40%)
+        // endpoints. NI savings are not included here for clarity.
+        const savedAtBasic = spend * 0.2;
+        const savedAtHigher = spend * 0.4;
         return (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Box
-              label={`Tax saved by deducting £${Math.round(spend).toLocaleString('en-GB')} (Ltd, small-profits rate)`}
-              value={formatGBP(ctSavedSmall)}
-              tone="ok"
-            />
-            <Box
-              label="Tax saved if instead deducted against your 40% income"
-              value={formatGBP(personalSaved40)}
-              tone="ok"
-            />
+          <div className="space-y-3">
+            <p className="text-sm text-ink-700 dark:text-ink-300">
+              Each £1 of deductible spend reduces taxable profit by £1, so the
+              cash saving equals £1 × the marginal tax rate that the deduction
+              eats into. The actual rate depends on which band your profit sits
+              in — we show both endpoints.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Box
+                label="Ltd — saved at 19% small-profits rate"
+                value={formatGBP(savedAtSmallRate)}
+                tone="ok"
+              />
+              <Box
+                label="Ltd — saved at 25% main rate"
+                value={formatGBP(savedAtMainRate)}
+                tone="ok"
+              />
+              <Box
+                label="Personal — saved at 20% basic rate"
+                value={formatGBP(savedAtBasic)}
+                tone="ok"
+              />
+              <Box
+                label="Personal — saved at 40% higher rate"
+                value={formatGBP(savedAtHigher)}
+                tone="ok"
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Inside the Ltd's marginal-relief band (£50k–£250k) the effective
+              marginal rate climbs above 25% (peaks at 26.5%). Personal savings
+              also depend on whether you're in the £100k–£125k taper zone where
+              the marginal rate hits ~60%.
+            </p>
           </div>
         );
       }}

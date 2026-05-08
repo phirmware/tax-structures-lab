@@ -90,23 +90,33 @@ function PensionWidget() {
   const [annualPreTax, setAnnualPreTax] = useState(20_000);
   const [years, setYears] = useState(30);
 
-  // Same starting amount, two paths.
-  // Path A: into pension. Whole amount goes in pre-tax. Grows at 7%.
-  //          Withdrawal: 25% tax-free, 75% at 20% (assumed retirement basic rate).
-  // Path B: dividend. Pays ~33.75% dividend tax (higher rate). Net invested at 5% in a taxable wrapper.
-  // Use 7% pension growth, 5% taxable growth (post-tax effects baked in roughly).
-
+  // Same starting amount of pre-CT company profit. Two paths.
+  //
+  // Path A: into pension. Employer contribution is deductible for CT, so the
+  // full £annualPreTax lands inside the pension. Grows tax-free at 7%.
+  // Withdrawal: 25% tax-free, 75% at 20% basic rate in retirement.
+  //
+  // Path B: dividend route. Company pays 25% main-rate CT on the profit, then
+  // declares a dividend on the post-CT amount, which is taxed at 33.75% higher
+  // rate. The remainder is invested personally at 5% (illustrative post-tax
+  // accumulation rate that bakes in some CGT/dividend drag without picking a
+  // specific wrapper).
   const data = useMemo(() => {
     const out = [];
     let pension = 0;
     let taxable = 0;
+    const ctRate = 0.25; // illustrative main rate
     const dividendTaxRate = 0.3375;
     const pensionGrowth = 0.07;
     const taxableGrowth = 0.05;
 
+    // £1 of pre-CT profit → (1 - CT) post-CT → (1 - CT)(1 - DivTax) personal.
+    const dividendNetPerPound = (1 - ctRate) * (1 - dividendTaxRate);
+
     for (let i = 1; i <= years; i++) {
       pension = pension * (1 + pensionGrowth) + annualPreTax;
-      taxable = taxable * (1 + taxableGrowth) + annualPreTax * (1 - dividendTaxRate);
+      taxable =
+        taxable * (1 + taxableGrowth) + annualPreTax * dividendNetPerPound;
       out.push({
         year: i,
         pensionPot: Math.round(pension),
@@ -186,7 +196,7 @@ function PensionWidget() {
             <Line
               type="monotone"
               dataKey="taxablePot"
-              name="Taxable savings (post-dividend-tax)"
+              name="Taxable savings (post-CT + dividend tax)"
               stroke="#67738c"
               strokeWidth={2}
               dot={false}
@@ -211,7 +221,7 @@ function PensionWidget() {
         <Stat
           label="Taxable savings path"
           value={formatGBP(lastT)}
-          hint="Post-dividend-tax on input, 5% growth"
+          hint="After 25% CT + 33.75% dividend tax, 5% growth"
         />
       </div>
       <p className="mt-3 text-xs text-ink-500 dark:text-ink-400">
