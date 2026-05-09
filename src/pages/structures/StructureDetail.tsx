@@ -16,6 +16,11 @@ import { LessonSummary } from '../../components/ui/LessonSummary';
 import { FounderMistakes } from '../../components/ui/FounderMistakes';
 import { ShowWithMyNumbers } from '../../components/ui/ShowWithMyNumbers';
 import { useAppState } from '../../state/AppState';
+import { getStructureBody } from '../../content/structureBodies';
+import {
+  StructureSimulation,
+  hasStructureSimulation,
+} from './StructureSimulations';
 
 const REVENUE = 100_000;
 const COSTS = 30_000;
@@ -203,14 +208,15 @@ export function StructureDetail() {
           </div>
         </section>
       ) : (
-        <section className="card-pad">
-          <p className="text-sm text-ink-700 dark:text-ink-300">
-            This structure isn't directly modelled in the simulator yet (its mechanics overlap
-            with simpler structures). Use the comparison view, or read the rest of the page for
-            tradeoffs and pattern notes.
-          </p>
-        </section>
+        <StructureSimulationSection structureId={s.id} />
       )}
+
+      {(() => {
+        const body = getStructureBody(s.id);
+        return body ? (
+          <article className="card-pad prose-app">{body}</article>
+        ) : null;
+      })()}
 
       <section className="grid gap-3 md:grid-cols-2">
         <Card heading="Pros">
@@ -274,5 +280,29 @@ function Card({ heading, children }: { heading: string; children: React.ReactNod
       </h3>
       <div className="mt-2">{children}</div>
     </div>
+  );
+}
+
+/**
+ * Card-shell wrapper around a per-structure simulation.
+ */
+function StructureSimulationSection({ structureId }: { structureId: string }) {
+  const titled = hasStructureSimulation(structureId);
+  return (
+    <section className="card overflow-hidden">
+      <header className="flex flex-col gap-2 border-b border-ink-200 px-5 py-4 dark:border-ink-800 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">
+            {titled ? 'Simulation for this structure' : 'Not numerically modelled'}
+          </h2>
+          {titled && (
+            <p className="text-xs text-ink-500 dark:text-ink-400">
+              Adjust below — figures recalculate live. Illustrative only.
+            </p>
+          )}
+        </div>
+      </header>
+      <StructureSimulation id={structureId} />
+    </section>
   );
 }
