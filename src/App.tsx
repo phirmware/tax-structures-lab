@@ -15,6 +15,8 @@ import { UkOverview } from './pages/uk/UkOverview';
 import { UkTopic } from './pages/uk/UkTopic';
 import { PatternsOverview } from './pages/patterns/PatternsOverview';
 import { PatternsExercise } from './pages/patterns/PatternsExercise';
+import { StrategiesLanding } from './pages/strategies/StrategiesLanding';
+import { StrategySection } from './pages/strategies/StrategySection';
 import { ScenariosLibrary } from './pages/scenarios/ScenariosLibrary';
 import { SavedScenarios } from './pages/scenarios/SavedScenarios';
 import { ScenarioDetail } from './pages/scenarios/ScenarioDetail';
@@ -86,6 +88,9 @@ export default function App() {
 
               <Route path="/patterns" element={<PatternsOverview />} />
               <Route path="/patterns/exercise" element={<PatternsExercise />} />
+
+              <Route path="/strategies" element={<StrategiesLanding />} />
+              <Route path="/strategies/:subsection" element={<StrategySection />} />
 
               <Route path="/scenarios" element={<ScenariosLibrary />} />
               <Route path="/scenarios/saved" element={<SavedScenarios />} />

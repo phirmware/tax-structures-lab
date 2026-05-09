@@ -13,7 +13,7 @@ export function ScenariosLibrary() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Section 6"
+        eyebrow="Section 7"
         title="Worked scenarios"
         description="Detailed walkthroughs of the most common founder situations. Each one shows which patterns are at play and which questions to bring to your accountant."
         pageId="scenarios"

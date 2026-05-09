@@ -207,9 +207,87 @@ export const ABBREVIATIONS: Record<string, AbbrEntry> = {
   },
   gaar: {
     short: 'GAAR',
-    full: 'General Anti-Avoidance Rule',
+    full: 'General Anti-Abuse Rule',
     definition:
-      'A broad UK rule allowing HMRC to challenge tax arrangements that lack commercial substance.',
+      'A broad UK rule allowing HMRC to counteract tax arrangements that are abusive — i.e. that cannot reasonably be regarded as a reasonable course of action.',
+  },
+  eot: {
+    short: 'EOT',
+    full: 'Employee Ownership Trust',
+    definition:
+      'A trust that holds shares in a trading company on behalf of its employees; sales to a qualifying EOT can attract 0% CGT.',
+  },
+  dotas: {
+    short: 'DOTAS',
+    full: 'Disclosure of Tax Avoidance Schemes',
+    definition:
+      'UK rules requiring promoters of certain tax-saving schemes to register them with HMRC, putting users on notice that the arrangement is being scrutinised.',
+  },
+  amap: {
+    short: 'AMAP',
+    full: 'Approved Mileage Allowance Payments',
+    definition:
+      'HMRC-set mileage rates an employer can pay tax-free for business journeys in an employee’s own car (currently 45p/mile up to 10k miles, 25p thereafter).',
+  },
+  aia: {
+    short: 'AIA',
+    full: 'Annual Investment Allowance',
+    definition:
+      'A capital allowance that lets a business deduct the full cost of qualifying plant and machinery (up to a yearly cap) against profit in the year of purchase.',
+  },
+  aim: {
+    short: 'AIM',
+    full: 'Alternative Investment Market',
+    definition:
+      'The London Stock Exchange’s growth-company market; some AIM-listed shares qualify for Business Relief from inheritance tax after 2 years of ownership.',
+  },
+  ltv: {
+    short: 'LTV',
+    full: 'Loan-to-Value',
+    definition:
+      'The ratio of a loan amount to the value of the asset securing it; lenders cap LTV to limit downside risk on margin or property loans.',
+  },
+  moo: {
+    short: 'MOO',
+    full: 'Mutuality of Obligation',
+    definition:
+      'An IR35 test: whether the client is obliged to provide ongoing work and the contractor obliged to accept it. Strong MOO points toward employment status.',
+  },
+  sds: {
+    short: 'SDS',
+    full: 'Status Determination Statement',
+    definition:
+      'The written IR35 status determination a medium- or large-sized client must provide before paying a contractor through a PSC.',
+  },
+  cfc: {
+    short: 'CFC',
+    full: 'Controlled Foreign Company',
+    definition:
+      'A UK regime that taxes UK shareholders on the profits of low-tax foreign subsidiaries lacking commercial substance.',
+  },
+  dpt: {
+    short: 'DPT',
+    full: 'Diverted Profits Tax',
+    definition:
+      'A UK tax aimed at large-business arrangements that artificially divert profits from UK activity to lower-tax jurisdictions.',
+  },
+  ebt: {
+    short: 'EBT',
+    full: 'Employee Benefit Trust',
+    definition:
+      'A trust historically marketed for tax-favoured remuneration; most contractor-style EBT schemes were defeated by HMRC and the 2019 loan charge.',
+  },
+  qsbc: {
+    short: 'QSBC',
+    full: 'Qualifying Small Business Corporation',
+    definition:
+      'A Canadian designation roughly analogous to BADR/QSBS — used in the patterns section as a cross-jurisdiction reference point.',
+  },
+  srt: {
+    short: 'SRT',
+    full: 'Statutory Residence Test',
+    definition:
+      'The set of UK rules that determines whether you are tax-resident in any given tax year, based on days in the UK and personal ties.',
   },
 };
 

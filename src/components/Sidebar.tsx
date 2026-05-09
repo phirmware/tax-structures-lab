@@ -3,6 +3,7 @@ import { useAppState } from '../state/AppState';
 import { Check } from './ui/Icons';
 import { LESSONS } from '../content/lessons';
 import { STRUCTURES } from '../content/structures';
+import { STRATEGY_SUBSECTIONS } from '../content/strategies';
 
 const SECTIONS = [
   {
@@ -65,7 +66,17 @@ const SECTIONS = [
     ],
   },
   {
-    title: '6. Scenarios',
+    title: '6. Strategies',
+    items: [
+      { to: '/strategies', label: 'Overview' },
+      ...STRATEGY_SUBSECTIONS.map((s) => ({
+        to: `/strategies/${s.id}`,
+        label: s.title,
+      })),
+    ],
+  },
+  {
+    title: '7. Scenarios',
     items: [
       { to: '/scenarios', label: 'Worked examples' },
       { to: '/scenarios/saved', label: 'Your saved scenarios' },
