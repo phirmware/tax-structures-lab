@@ -345,6 +345,7 @@ const extractionStrategies: Strategy[] = [
       'HMRC Employment Income Manual — section EIM21863 onwards on exempt benefits.',
       'Ask: which exempt-benefit categories make sense given how I actually spend? It costs nothing to use them properly.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'mileage-and-home',
@@ -407,6 +408,7 @@ const extractionStrategies: Strategy[] = [
     worthReading: [
       'HMRC EIM31200 (mileage), EIM01476 (use of home as office).',
     ],
+    hasSimulator: true,
   },
   {
     id: 'family-employment',
@@ -905,6 +907,7 @@ const wealthStrategies: Strategy[] = [
       'HMRC Pensions Tax Manual.',
       'Autumn 2024 Budget — pensions and IHT consultation document.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'isa-discipline',
@@ -961,6 +964,7 @@ const wealthStrategies: Strategy[] = [
     worthReading: [
       'GOV.UK ISA pages — contribution rules, transfer rules, eligibility.',
     ],
+    hasSimulator: true,
   },
 ];
 
@@ -1111,6 +1115,7 @@ const investmentStrategies: Strategy[] = [
       'AIC (Association of Investment Companies) VCT pages — annual sector data and individual VCT histories.',
       'Ask: what does this VCT actually hold, and what are its 5- and 10-year NAV returns net of fees?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'business-relief-aim',
@@ -1176,6 +1181,7 @@ const investmentStrategies: Strategy[] = [
       'HMRC IHT Manual on BPR.',
       'Autumn 2024 Budget — BPR / APR cap consultation.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'reinvestment-relief',
@@ -1227,6 +1233,7 @@ const investmentStrategies: Strategy[] = [
       'HMRC HS297 — Reinvestment Relief.',
       'Ask: what was the CGT rate / relief available on the original gain, and is deferring worth taking on EIS risk?',
     ],
+    hasSimulator: true,
   },
 ];
 
@@ -1303,7 +1310,7 @@ const saleStrategies: Strategy[] = [
       'HMRC HS275 — Business Asset Disposal Relief.',
       'Ask: what is my BADR clock and what could break it between now and the sale?',
     ],
-    hasSimulator: false,
+    hasSimulator: true,
   },
   {
     id: 'eot-sale',
@@ -1369,6 +1376,7 @@ const saleStrategies: Strategy[] = [
       'EOA (Employee Ownership Association) and HMRC VCM Manual on EOTs.',
       'Ask: what does our cashflow look like if profits drop 30% — can the EOT still pay the deferred consideration?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'earn-outs',
@@ -1426,6 +1434,7 @@ const saleStrategies: Strategy[] = [
       'HMRC ERSM110000 onwards on earn-outs and securities options.',
       'Ask: does the earn-out vest if I leave the business? Are the payments structured as additional consideration or as employment?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'pre-sale-restructuring',
@@ -1567,6 +1576,7 @@ const classificationStrategies: Strategy[] = [
       'HMRC Employment Related Securities Manual.',
       'Ask: should this employee receive EMI options, growth shares, or both? What\'s the unrestricted market value at grant?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'capital-vs-income',
@@ -1627,6 +1637,7 @@ const classificationStrategies: Strategy[] = [
       'HMRC BIM20000 series on the badges of trade.',
       'Ask: how would my pattern of buying and selling look to an HMRC inspector? Could I document it as investment?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'ir35-aware',
@@ -1713,6 +1724,7 @@ const classificationStrategies: Strategy[] = [
       'HMRC ESM (Employment Status Manual).',
       'CEST (Check Employment Status for Tax) — HMRC\'s online tool. Useful as a sanity check, not a definitive answer.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'royalty-ip-licensing',
@@ -1891,6 +1903,7 @@ const multiEntityStrategies: Strategy[] = [
     worthReading: [
       'HMRC CTM80000 series on group relief.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'inter-co-charges',
@@ -1947,6 +1960,7 @@ const multiEntityStrategies: Strategy[] = [
     worthReading: [
       'HMRC International Manual — transfer pricing principles even apply between UK group members in some respects.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'ringfencing-risk',
@@ -2082,6 +2096,7 @@ const longTermStrategies: Strategy[] = [
       'HMRC IHT Manual on BPR.',
       'Autumn 2024 Budget — BPR / APR cap technical consultation.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'gifting-7-year',
@@ -2153,6 +2168,7 @@ const longTermStrategies: Strategy[] = [
       'HMRC IHT Manual on PETs and exempt transfers.',
       'Ask: are there regular payments I make that could qualify under the gifts-out-of-income exemption with proper documentation?',
     ],
+    hasSimulator: true,
   },
   {
     id: 'trust-strategy',
@@ -2515,6 +2531,7 @@ const misunderstoodStrategies: Strategy[] = [
     worthReading: [
       'HMRC Cryptoassets Manual.',
     ],
+    hasSimulator: true,
   },
   {
     id: 'buy-borrow-die',

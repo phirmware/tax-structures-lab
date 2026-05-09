@@ -2,18 +2,28 @@ import {
   ShowWithMyNumbers,
   type InputSpec,
 } from '../../components/ui/ShowWithMyNumbers';
+import { MiniSim, SimBox } from '../../components/ui/MiniSim';
 import {
   computeSalaryAndDividends,
   ltdResult,
 } from '../../lib/tax';
 import {
+  BADR_LIFETIME_LIMIT,
+  BADR_RATE,
+  CGT_ANNUAL_EXEMPTION,
   CGT_HIGHER,
   CT_MAIN_RATE,
+  CT_SMALL_RATE,
   DIV_HIGHER,
   EIS_INCOME_TAX_RELIEF,
+  IT_BASIC,
   IT_HIGHER,
+  IHT_NIL_RATE_BAND,
+  IHT_RATE,
+  ISA_ALLOWANCE,
   PERSONAL_ALLOWANCE,
   SEIS_INCOME_TAX_RELIEF,
+  VAT_STANDARD_RATE,
 } from '../../lib/constants';
 import { formatGBP, formatPct } from '../../lib/format';
 
@@ -31,12 +41,50 @@ export function StrategySimulator({
       return <SalaryVsDividendsSim />;
     case 'pension-extraction':
       return <PensionExtractionSim />;
+    case 'trivial-benefits':
+      return <TrivialBenefitsSim />;
+    case 'mileage-and-home':
+      return <MileageHomeSim />;
     case 'family-employment':
       return <FamilyEmploymentSim />;
+    case 'directors-loans':
+      return <DirectorsLoanSim />;
     case 'borrow-against-listed':
       return <BorrowAgainstListedSim />;
+    case 'pensions-long-game':
+      return <PensionsLongGameSim />;
+    case 'isa-discipline':
+      return <IsaDisciplineSim />;
     case 'eis-seis':
       return <EisSeisSim />;
+    case 'vct':
+      return <VctSim />;
+    case 'business-relief-aim':
+      return <BusinessReliefAimSim />;
+    case 'reinvestment-relief':
+      return <ReinvestmentReliefSim />;
+    case 'badr-qualification':
+      return <BadrQualificationSim />;
+    case 'eot-sale':
+      return <EotSaleSim />;
+    case 'earn-outs':
+      return <EarnOutsSim />;
+    case 'equity-vs-cash':
+      return <EquityVsCashSim />;
+    case 'capital-vs-income':
+      return <CapitalVsIncomeSim />;
+    case 'ir35-aware':
+      return <Ir35Sim />;
+    case 'group-relief':
+      return <GroupReliefSim />;
+    case 'inter-co-charges':
+      return <InterCoChargesSim />;
+    case 'iht-business-relief':
+      return <IhtBprSim />;
+    case 'gifting-7-year':
+      return <Gifting7YearSim />;
+    case 'pay-yourself-in-crypto':
+      return <CryptoMythSim />;
     default:
       return null;
   }
@@ -411,6 +459,1232 @@ function EisSeisSim() {
       }}
     />
   );
+}
+
+// ------------------- Extraction (additional) --------------------
+
+function TrivialBenefitsSim() {
+  return (
+    <MiniSim
+      title="Annual savings from exempt benefits"
+      inputs={[
+        {
+          key: 'gifts',
+          label: 'Trivial gifts taken (count, max £50 each)',
+          defaultValue: 6,
+          kind: 'count',
+          min: 0,
+          max: 6,
+          hint: 'Director cap: £300/year (~6 × £50). Phone/eye-test exemptions don\'t count toward this cap.',
+        },
+        {
+          key: 'partyHeads',
+          label: 'Annual-event headcount (£150/head)',
+          defaultValue: 4,
+          kind: 'count',
+          min: 0,
+          max: 50,
+        },
+        {
+          key: 'phoneAnnual',
+          label: 'Mobile phone annual cost (company contract)',
+          defaultValue: 600,
+          kind: 'currency',
+          min: 0,
+          step: 50,
+        },
+      ]}
+      render={({ values }) => {
+        const giftsValue = Math.min(values.gifts, 6) * 50;
+        const partyValue = Math.min(values.partyHeads, 50) * 150;
+        const phoneValue = values.phoneAnnual;
+        const total = giftsValue + partyValue + phoneValue;
+        // Personal-tax cost saved if you'd had to pay for these from net pay.
+        const equivPersonalGross = total / (1 - 0.4 - 0.02); // 40% IT + 2% NI
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SimBox label="Trivial-gift exemption used" value={giftsValue} tone="ok" />
+              <SimBox label="Annual-event exemption used" value={partyValue} tone="ok" />
+              <SimBox label="Phone exemption used" value={phoneValue} tone="ok" />
+            </div>
+            <SimBox
+              label="Total tax-free benefit"
+              value={total}
+              tone="ok"
+              full
+            />
+            <SimBox
+              label="Equivalent gross pay you'd need to net the same"
+              value={equivPersonalGross}
+              tone="warn"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Each exemption is its own cliff edge — exceed by £1 and the whole item becomes taxable. Phone and annual-event exemptions don't count toward the £300 director-trivial cap."
+    />
+  );
+}
+
+function MileageHomeSim() {
+  return (
+    <MiniSim
+      title="Mileage + home flat-rate annual reclaim"
+      inputs={[
+        {
+          key: 'businessMiles',
+          label: 'Business miles per year (own car)',
+          defaultValue: 4_000,
+          kind: 'count',
+          min: 0,
+          max: 30_000,
+          step: 100,
+        },
+        {
+          key: 'workFromHomeWeeks',
+          label: 'Weeks worked from home',
+          defaultValue: 40,
+          kind: 'count',
+          min: 0,
+          max: 52,
+        },
+      ]}
+      render={({ values }) => {
+        const miles = values.businessMiles;
+        const firstSlice = Math.min(miles, 10_000) * 0.45;
+        const secondSlice = Math.max(0, miles - 10_000) * 0.25;
+        const mileageTotal = firstSlice + secondSlice;
+        const homeFlat = values.workFromHomeWeeks * 6;
+        return (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SimBox
+              label="Mileage reclaim @ AMAP rates"
+              value={mileageTotal}
+              tone="ok"
+            />
+            <SimBox
+              label="Home-flat-rate reclaim (£6/week)"
+              value={homeFlat}
+              tone="ok"
+            />
+            <SimBox
+              label="Total tax-free annual reclaim"
+              value={mileageTotal + homeFlat}
+              tone="ok"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="AMAP rates: 45p/mile up to 10,000 miles, 25p thereafter. The home-flat-rate is the receipt-free shortcut — actuals can be higher with apportioned bills."
+    />
+  );
+}
+
+function DirectorsLoanSim() {
+  return (
+    <MiniSim
+      title="What an unmonitored director's loan actually costs"
+      inputs={[
+        {
+          key: 'loan',
+          label: 'Loan amount (peak)',
+          defaultValue: 30_000,
+          kind: 'currency',
+          min: 0,
+          max: 200_000,
+          step: 1_000,
+        },
+        {
+          key: 'monthsHeld',
+          label: 'Months from year-end to repayment',
+          defaultValue: 12,
+          kind: 'months',
+          min: 0,
+          max: 36,
+          hint: 'The s455 deadline is 9 months and 1 day after year-end.',
+        },
+      ]}
+      render={({ values }) => {
+        const loan = values.loan;
+        const monthsAfterYearEnd = values.monthsHeld;
+        const overThreshold = loan > 10_000;
+        // BiK ~ HMRC official rate (use 2.25% as illustrative current ORI).
+        const bikYears = Math.ceil(monthsAfterYearEnd / 12);
+        const bikValue = overThreshold ? loan * 0.0225 * bikYears : 0;
+        const bikTax = bikValue * 0.4; // higher-rate, illustrative
+        // s455 if not repaid within 9m1d.
+        const s455 =
+          monthsAfterYearEnd > 9 ? loan * 0.3375 : 0;
+        const total = bikTax + s455;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="BiK on cheap loan (>£10k)"
+                value={bikValue}
+                tone={overThreshold ? 'warn' : undefined}
+              />
+              <SimBox
+                label="Personal tax on BiK (~40%)"
+                value={bikTax}
+                tone={bikTax > 0 ? 'bad' : undefined}
+              />
+              <SimBox
+                label="s455 charge if &gt;9 months overdue"
+                value={s455}
+                tone={s455 > 0 ? 'bad' : undefined}
+              />
+              <SimBox
+                label="Total cost while loan unrepaid"
+                value={total}
+                tone={total > 0 ? 'bad' : 'ok'}
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              s455 is recoverable when the loan is later repaid — but only after
+              the next CT return cycles, so cash sits at HMRC for years. BiK
+              cost is permanent.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+// ------------------- Wealth Preservation (additional) --------------------
+
+function PensionsLongGameSim() {
+  const inputs: InputSpec[] = [
+    {
+      key: 'pensionContribution',
+      defaultValue: 30_000,
+      min: 0,
+      max: 60_000,
+      step: 500,
+      label: 'Annual contribution (years 1–N)',
+    },
+    {
+      key: 'yearsHorizon',
+      defaultValue: 25,
+      min: 5,
+      max: 40,
+      step: 1,
+      label: 'Years to retirement',
+    },
+  ];
+  return (
+    <ShowWithMyNumbers
+      title="30-year compounding inside vs outside a pension"
+      inputs={inputs}
+      render={({ values }) => {
+        const contrib = values.pensionContribution ?? 0;
+        const years = Math.max(1, Math.round(values.yearsHorizon ?? 1));
+        const growth = 0.07;
+
+        // Pension: full contribution lands, grows tax-free.
+        let pensionPot = 0;
+        for (let i = 0; i < years; i++)
+          pensionPot = (pensionPot + contrib) * (1 + growth);
+        const lumpSum = pensionPot * 0.25;
+        const taxedPortion = pensionPot * 0.75;
+        const pensionNetAtBasicDraw =
+          lumpSum + taxedPortion * (1 - IT_BASIC);
+        const pensionNetAtHigherDraw =
+          lumpSum + taxedPortion * (1 - IT_HIGHER);
+
+        // Personal route: same gross diverted to dividend → ISA each year.
+        // Lands as contrib × (1 - 25% CT)(1 - 33.75% div) = ~0.4969.
+        const personalIn = contrib * (1 - CT_MAIN_RATE) * (1 - DIV_HIGHER);
+        let personalPot = 0;
+        for (let i = 0; i < years; i++)
+          personalPot = (personalPot + personalIn) * (1 + growth);
+
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Pension pot (pre-draw)"
+                value={pensionPot}
+                tone="ok"
+              />
+              <SimBox
+                label="Personal ISA pot (post-CT + div tax)"
+                value={personalPot}
+                tone="warn"
+              />
+              <SimBox
+                label="Pension net @ basic-rate draw"
+                value={pensionNetAtBasicDraw}
+                tone="ok"
+              />
+              <SimBox
+                label="Pension net @ higher-rate draw"
+                value={pensionNetAtHigherDraw}
+                tone="ok"
+              />
+            </div>
+            <SimBox
+              label="Pension advantage at basic-rate draw"
+              value={Math.max(0, pensionNetAtBasicDraw - personalPot)}
+              tone="ok"
+              full
+            />
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Pension wins more clearly at longer horizons and when the
+              retirement marginal rate is below your peak-earning rate.
+              Assumes 7% gross growth, 25% CT, 33.75% higher-rate dividend.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+function IsaDisciplineSim() {
+  return (
+    <MiniSim
+      title="What a missed ISA year actually costs"
+      inputs={[
+        {
+          key: 'annualContribution',
+          label: 'Annual ISA contribution',
+          defaultValue: ISA_ALLOWANCE,
+          kind: 'currency',
+          min: 0,
+          max: ISA_ALLOWANCE,
+          step: 500,
+        },
+        {
+          key: 'years',
+          label: 'Years (current age to 65)',
+          defaultValue: 25,
+          kind: 'years',
+          min: 1,
+          max: 40,
+        },
+        {
+          key: 'missedYears',
+          label: 'Years skipped',
+          defaultValue: 5,
+          kind: 'years',
+          min: 0,
+          max: 40,
+        },
+      ]}
+      render={({ values }) => {
+        const contrib = values.annualContribution;
+        const years = Math.max(1, Math.round(values.years));
+        const missed = Math.min(Math.round(values.missedYears), years);
+        const growth = 0.07;
+        const fv = (n: number) =>
+          contrib * ((Math.pow(1 + growth, n) - 1) / growth);
+        const fullPot = fv(years);
+        const skippedPot = fv(years - missed) * Math.pow(1 + growth, missed);
+        const cost = fullPot - skippedPot;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Pot at end — every year used"
+                value={fullPot}
+                tone="ok"
+              />
+              <SimBox
+                label="Pot at end — with skipped years"
+                value={skippedPot}
+                tone="warn"
+              />
+            </div>
+            <SimBox
+              label="Cost of those skipped years"
+              value={cost}
+              tone="bad"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Assumes 7% gross compounding inside the ISA. Each missed allowance is gone for good — there's no carry-forward."
+    />
+  );
+}
+
+// ------------------- Investment (additional) --------------------
+
+function VctSim() {
+  return (
+    <MiniSim
+      title="VCT relief over a 5-year hold"
+      inputs={[
+        {
+          key: 'investment',
+          label: 'VCT investment',
+          defaultValue: 50_000,
+          kind: 'currency',
+          min: 5_000,
+          max: 200_000,
+          step: 1_000,
+        },
+        {
+          key: 'yieldRate',
+          label: 'Annual VCT dividend yield',
+          defaultValue: 0.07,
+          kind: 'percent',
+          min: 0,
+          max: 0.15,
+          step: 0.005,
+        },
+      ]}
+      render={({ values }) => {
+        const inv = values.investment;
+        const yieldRate = values.yieldRate;
+        const itRelief = inv * 0.30;
+        const dividendsOver5y = inv * yieldRate * 5;
+        // Compare to a higher-rate dividend taxed at 33.75%.
+        const dividendTaxIfNotVct = dividendsOver5y * DIV_HIGHER;
+        const totalBenefit = itRelief + dividendTaxIfNotVct;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="30% income-tax relief on subscription"
+                value={itRelief}
+                tone="ok"
+              />
+              <SimBox
+                label="Tax-free dividends over 5 years"
+                value={dividendsOver5y}
+                tone="ok"
+              />
+              <SimBox
+                label="Dividend tax avoided (vs taxable holding)"
+                value={dividendTaxIfNotVct}
+                tone="ok"
+              />
+              <SimBox
+                label="Total tax benefit over 5y"
+                value={totalBenefit}
+                tone="ok"
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Reliefs are the upside; the underlying VCT pays manager fees
+              of ~1.5–3.0%/year and invests in small UK companies — all of
+              which can lose value. Sell within 5 years and the income-tax
+              relief is clawed back.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+function BusinessReliefAimSim() {
+  return (
+    <MiniSim
+      title="BPR before and after the April 2026 cap"
+      inputs={[
+        {
+          key: 'estate',
+          label: 'Estate value',
+          defaultValue: 4_000_000,
+          kind: 'currency',
+          min: 500_000,
+          max: 50_000_000,
+          step: 50_000,
+        },
+        {
+          key: 'bprAssets',
+          label: 'Of which qualifying BPR assets',
+          defaultValue: 3_000_000,
+          kind: 'currency',
+          min: 0,
+          max: 50_000_000,
+          step: 50_000,
+        },
+      ]}
+      render={({ values }) => {
+        const estate = values.estate;
+        const bpr = Math.min(values.bprAssets, estate);
+        const nonBpr = estate - bpr;
+        const bands = IHT_NIL_RATE_BAND + 175_000; // illustrative w/ residence band
+        const taxableNonBpr = Math.max(0, nonBpr - bands);
+
+        const ihtNoRelief = Math.max(0, estate - bands) * IHT_RATE;
+        const ihtPre2026 = taxableNonBpr * IHT_RATE;
+        // Post-April-2026: first £1m at 100%, excess at 50% relief.
+        const cap = 1_000_000;
+        const bprAtFullRelief = Math.min(bpr, cap);
+        const bprAtPartialRelief = Math.max(0, bpr - cap);
+        const taxableBprPost = bprAtPartialRelief * 0.5; // 50% remains taxable
+        const ihtPost2026 =
+          (taxableNonBpr + taxableBprPost) * IHT_RATE;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SimBox label="IHT — no relief" value={ihtNoRelief} tone="bad" />
+              <SimBox
+                label="IHT — pre-Apr-2026 BPR (100%)"
+                value={ihtPre2026}
+                tone="ok"
+              />
+              <SimBox
+                label="IHT — post-Apr-2026 BPR (£1m cap)"
+                value={ihtPost2026}
+                tone="warn"
+              />
+            </div>
+            <SimBox
+              label="Cap impact on this estate"
+              value={ihtPost2026 - ihtPre2026}
+              tone="warn"
+              full
+            />
+            {bprAtFullRelief > 0 && (
+              <p className="text-[12px] text-ink-500 dark:text-ink-400">
+                First £{cap.toLocaleString('en-GB')} of qualifying BPR keeps
+                100% relief; the {formatGBP(bprAtPartialRelief)} above the cap
+                gets 50% relief (so 50% remains taxable at 40%).
+              </p>
+            )}
+          </div>
+        );
+      }}
+      footer="Illustrative. The 2026 cap is per individual; spouses can each have their own."
+    />
+  );
+}
+
+function ReinvestmentReliefSim() {
+  return (
+    <MiniSim
+      title="EIS reinvestment relief on a realised gain"
+      inputs={[
+        {
+          key: 'gain',
+          label: 'Capital gain to reinvest',
+          defaultValue: 200_000,
+          kind: 'currency',
+          min: 5_000,
+          step: 5_000,
+        },
+        {
+          key: 'years',
+          label: 'Years until eventual disposal',
+          defaultValue: 7,
+          kind: 'years',
+          min: 3,
+          max: 20,
+        },
+      ]}
+      render={({ values }) => {
+        const gain = values.gain;
+        const years = Math.max(3, Math.round(values.years));
+        const cgtNow = gain * CGT_HIGHER;
+        const cgtDeferred = gain * CGT_HIGHER; // same nominal, paid later
+        const realDiscount = 0.04;
+        const cgtDeferredPv =
+          cgtDeferred / Math.pow(1 + realDiscount, years);
+        const itReliefOnNew = gain * EIS_INCOME_TAX_RELIEF;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="CGT if paid now"
+                value={cgtNow}
+                tone="bad"
+              />
+              <SimBox
+                label="CGT if deferred (PV today, 4% real)"
+                value={cgtDeferredPv}
+                tone="warn"
+              />
+              <SimBox
+                label="EIS income-tax relief on the new investment"
+                value={itReliefOnNew}
+                tone="ok"
+              />
+              <SimBox
+                label="Effective benefit (CGT saved in PV + IT relief)"
+                value={cgtNow - cgtDeferredPv + itReliefOnNew}
+                tone="ok"
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              The CGT is deferred, not exempted — eventual disposal of the
+              EIS shares triggers the deferred bill. The benefit is the
+              time-value of money plus the new IT relief stacking on top.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+// ------------------- Sale & Exit (additional) --------------------
+
+function BadrQualificationSim() {
+  return (
+    <MiniSim
+      title="What BADR is worth on this sale"
+      inputs={[
+        {
+          key: 'gain',
+          label: 'Total capital gain on sale',
+          defaultValue: 1_500_000,
+          kind: 'currency',
+          min: 50_000,
+          step: 50_000,
+        },
+      ]}
+      render={({ values }) => {
+        const gain = values.gain;
+        const cgtFull = (gain - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const badrSlice = Math.min(gain, BADR_LIFETIME_LIMIT);
+        const aboveSlice = Math.max(0, gain - BADR_LIFETIME_LIMIT);
+        const cgtBadr =
+          badrSlice * BADR_RATE + (aboveSlice - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const cgtBadrSafe = Math.max(0, cgtBadr);
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="CGT @ standard 24%"
+                value={cgtFull}
+                tone="bad"
+              />
+              <SimBox
+                label="CGT with BADR (14% on first £1m)"
+                value={cgtBadrSafe}
+                tone="ok"
+              />
+            </div>
+            <SimBox
+              label="BADR saving"
+              value={cgtFull - cgtBadrSafe}
+              tone="ok"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="BADR caps at £1m of lifetime gain. Anything above is at the standard CGT rate. Qualifying continuously for 2 years before sale is non-negotiable."
+    />
+  );
+}
+
+function EotSaleSim() {
+  return (
+    <MiniSim
+      title="EOT (0% CGT) vs trade sale (BADR + main rate)"
+      inputs={[
+        {
+          key: 'saleValue',
+          label: 'Sale value (≈ gain for founder cost basis)',
+          defaultValue: 5_000_000,
+          kind: 'currency',
+          min: 100_000,
+          step: 100_000,
+        },
+      ]}
+      render={({ values }) => {
+        const v = values.saleValue;
+        const tradeBadr = Math.min(v, BADR_LIFETIME_LIMIT) * BADR_RATE;
+        const tradeAbove =
+          Math.max(0, v - BADR_LIFETIME_LIMIT - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const tradeTotal = tradeBadr + tradeAbove;
+        const tradeNet = v - tradeTotal;
+        const eotNet = v;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Trade-sale CGT (BADR + main)"
+                value={tradeTotal}
+                tone="bad"
+              />
+              <SimBox
+                label="EOT CGT"
+                value={0}
+                tone="ok"
+              />
+              <SimBox label="Trade-sale net" value={tradeNet} tone="warn" />
+              <SimBox label="EOT net" value={eotNet} tone="ok" />
+            </div>
+            <SimBox
+              label="EOT advantage on the headline number"
+              value={eotNet - tradeNet}
+              tone="ok"
+              full
+            />
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              EOT consideration is typically <em>deferred</em> — paid out of
+              future trading profits over years. The headline number is right;
+              the certainty of receiving it depends on the company\'s
+              continuing performance.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+function EarnOutsSim() {
+  return (
+    <MiniSim
+      title="Earn-out as capital vs as employment income"
+      inputs={[
+        {
+          key: 'earnout',
+          label: 'Contingent consideration',
+          defaultValue: 500_000,
+          kind: 'currency',
+          min: 50_000,
+          step: 25_000,
+        },
+      ]}
+      render={({ values }) => {
+        const eo = values.earnout;
+        // Capital with BADR (assume room): 14%; employment income: 47% (45% IT + 2% NI).
+        const capitalTax = eo * BADR_RATE;
+        const incomeTax = eo * 0.47;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="If treated as capital (BADR-eligible)"
+                value={capitalTax}
+                tone="ok"
+              />
+              <SimBox
+                label="If treated as employment income"
+                value={incomeTax}
+                tone="bad"
+              />
+            </div>
+            <SimBox
+              label="Cost of getting the structure wrong"
+              value={incomeTax - capitalTax}
+              tone="bad"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="HMRC recharacterises earn-outs as employment when the seller is required to remain employed for the earn-out to vest. The structural drafting of the SPA matters as much as the headline price."
+    />
+  );
+}
+
+// ------------------- Income Classification (additional) --------------------
+
+function EquityVsCashSim() {
+  return (
+    <MiniSim
+      title="Cash bonus vs growth equity over the same horizon"
+      inputs={[
+        {
+          key: 'amount',
+          label: 'Total compensation value',
+          defaultValue: 200_000,
+          kind: 'currency',
+          min: 10_000,
+          step: 10_000,
+        },
+      ]}
+      render={({ values }) => {
+        const amt = values.amount;
+        // Cash bonus: 47% combined (IT + NI on the marginal slice).
+        const cashNet = amt * (1 - 0.47);
+        // Growth equity (BADR-eligible): 14%.
+        const equityNet = amt * (1 - BADR_RATE);
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Cash bonus net (47% combined)"
+                value={cashNet}
+                tone="warn"
+              />
+              <SimBox
+                label="BADR-eligible equity net (14%)"
+                value={equityNet}
+                tone="ok"
+              />
+            </div>
+            <SimBox
+              label="Tax saved by routing through equity"
+              value={equityNet - cashNet}
+              tone="ok"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Assumes the equity arrangement is properly structured (EMI, growth shares) so it isn't taxed as income at vest. Failed structures collapse back into the cash-bonus column."
+    />
+  );
+}
+
+function CapitalVsIncomeSim() {
+  return (
+    <MiniSim
+      title="Same gain, two classifications"
+      inputs={[
+        {
+          key: 'gain',
+          label: 'Realised gain on the disposal',
+          defaultValue: 100_000,
+          kind: 'currency',
+          min: 10_000,
+          step: 5_000,
+        },
+      ]}
+      render={({ values }) => {
+        const g = values.gain;
+        const capital = (g - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const income = g * 0.47;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Treated as capital (24% CGT)"
+                value={capital}
+                tone="ok"
+              />
+              <SimBox
+                label="Treated as trading income (47%)"
+                value={income}
+                tone="bad"
+              />
+            </div>
+            <SimBox
+              label="Cost of recharacterisation"
+              value={income - capital}
+              tone="bad"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Badges of trade — frequency, modifications for sale, length of holding, motive — drive HMRC's classification. Pure investment with long holding usually stays capital; serial flipping usually doesn't."
+    />
+  );
+}
+
+function Ir35Sim() {
+  const inputs: InputSpec[] = [
+    {
+      key: 'annualRevenue',
+      defaultValue: 120_000,
+      min: 20_000,
+      step: 5_000,
+      label: 'Contract value (annual)',
+    },
+    {
+      key: 'annualCosts',
+      defaultValue: 5_000,
+      min: 0,
+      step: 500,
+      label: 'Genuine business costs',
+    },
+    {
+      key: 'pensionContribution',
+      defaultValue: 0,
+      min: 0,
+      max: 60_000,
+      step: 500,
+      label: 'Pension contribution',
+    },
+  ];
+  return (
+    <ShowWithMyNumbers
+      title="Outside-IR35 vs inside-IR35 net to you"
+      inputs={inputs}
+      render={({ values }) => {
+        const r = values.annualRevenue ?? 0;
+        const c = values.annualCosts ?? 0;
+        const pension = values.pensionContribution ?? 0;
+        const outside = ltdResult({
+          revenue: r,
+          costs: c,
+          ownerSalary: PERSONAL_ALLOWANCE,
+          desiredCash: r,
+          pensionContribution: pension,
+        });
+        const insideSalary = Math.max(0, r - c - pension);
+        const insidePersonal = computeSalaryAndDividends(insideSalary, 0);
+        const insideEmployerNi =
+          Math.max(0, insideSalary - 5_000) * 0.15;
+        const insideTotalTax =
+          insidePersonal.itOnSalary +
+          insidePersonal.employeeNI +
+          insideEmployerNi;
+        const insideNet = insidePersonal.netSalary;
+        const advantage = outside.ownerTotalNet - insideNet;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Outside IR35 — total tax"
+                value={outside.totalTaxToHmrc}
+                tone="bad"
+              />
+              <SimBox
+                label="Inside IR35 — total tax"
+                value={insideTotalTax}
+                tone="bad"
+              />
+              <SimBox
+                label="Outside IR35 — net to you"
+                value={outside.ownerTotalNet}
+                tone="ok"
+              />
+              <SimBox
+                label="Inside IR35 — net to you"
+                value={insideNet}
+                tone="warn"
+              />
+            </div>
+            <SimBox
+              label="Outside-IR35 advantage"
+              value={advantage}
+              tone="ok"
+              full
+            />
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Inside IR35 collapses most of the PSC tax saving. The structural
+              defence is genuine independence, not the contract wording.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+// ------------------- Multi-Entity & Group (additional) --------------------
+
+function GroupReliefSim() {
+  return (
+    <MiniSim
+      title="Group relief vs carry-forward"
+      inputs={[
+        {
+          key: 'lossSubLoss',
+          label: 'Year-1 loss in Sub A',
+          defaultValue: 80_000,
+          kind: 'currency',
+          min: 0,
+          step: 5_000,
+        },
+        {
+          key: 'profitSubProfit',
+          label: 'Year-1 profit in Sub B',
+          defaultValue: 200_000,
+          kind: 'currency',
+          min: 0,
+          step: 10_000,
+        },
+      ]}
+      render={({ values }) => {
+        const loss = values.lossSubLoss;
+        const profit = values.profitSubProfit;
+        // Without group relief: Sub B pays CT on full profit; Sub A carries loss forward.
+        const ctSubBStandalone = profit * CT_MAIN_RATE;
+        // With group relief: loss surrendered against Sub B's profit.
+        const offset = Math.min(loss, profit);
+        const ctSubBPostRelief = (profit - offset) * CT_MAIN_RATE;
+        const ctSaved = ctSubBStandalone - ctSubBPostRelief;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Sub B CT — no group relief"
+                value={ctSubBStandalone}
+                tone="bad"
+              />
+              <SimBox
+                label="Sub B CT — with group relief"
+                value={ctSubBPostRelief}
+                tone="ok"
+              />
+            </div>
+            <SimBox
+              label="Cash saved this year (rest of loss carries forward)"
+              value={ctSaved}
+              tone="ok"
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Available where the parent owns ≥75% of both subs. Without group relief, the loss only shelters Sub A's own future profit — possibly years away."
+    />
+  );
+}
+
+function InterCoChargesSim() {
+  return (
+    <MiniSim
+      title="Recharge effect on group CT"
+      inputs={[
+        {
+          key: 'subProfit',
+          label: 'Trading sub pre-recharge profit',
+          defaultValue: 280_000,
+          kind: 'currency',
+          min: 0,
+          step: 10_000,
+          hint: 'Currently in the marginal-relief band (£50k–£250k) so the marginal CT rate is above 25%.',
+        },
+        {
+          key: 'recharge',
+          label: 'Holdco recharge to sub',
+          defaultValue: 50_000,
+          kind: 'currency',
+          min: 0,
+          max: 250_000,
+          step: 5_000,
+        },
+      ]}
+      render={({ values }) => {
+        const subProfit = values.subProfit;
+        const recharge = Math.min(values.recharge, subProfit);
+        // Holdco assumed loss-making prior to recharge for simplicity (so the
+        // recharge offsets its costs and is taxed within its small-profits band).
+        const ctSubBefore = subProfit * CT_MAIN_RATE;
+        const ctSubAfter = (subProfit - recharge) * CT_MAIN_RATE;
+        const ctHoldcoOnRecharge = recharge * CT_SMALL_RATE;
+        const groupBefore = ctSubBefore;
+        const groupAfter = ctSubAfter + ctHoldcoOnRecharge;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="Group CT without recharge"
+                value={groupBefore}
+                tone="bad"
+              />
+              <SimBox
+                label="Group CT with arm\'s-length recharge"
+                value={groupAfter}
+                tone="warn"
+              />
+            </div>
+            <SimBox
+              label="Difference"
+              value={groupBefore - groupAfter}
+              tone={groupBefore > groupAfter ? 'ok' : 'warn'}
+              full
+            />
+          </div>
+        );
+      }}
+      footer="Only legitimate when the holdco genuinely provides the service and the recharge is at arm\'s-length. Paper-only management fees get challenged."
+    />
+  );
+}
+
+// ------------------- Long-Term Wealth (additional) --------------------
+
+function IhtBprSim() {
+  return (
+    <MiniSim
+      title="BPR on a worked estate"
+      inputs={[
+        {
+          key: 'estate',
+          label: 'Total estate value',
+          defaultValue: 3_000_000,
+          kind: 'currency',
+          min: 500_000,
+          step: 50_000,
+        },
+        {
+          key: 'bpr',
+          label: 'Of which qualifying BPR',
+          defaultValue: 2_000_000,
+          kind: 'currency',
+          min: 0,
+          step: 50_000,
+        },
+      ]}
+      render={({ values }) => {
+        const estate = values.estate;
+        const bpr = Math.min(values.bpr, estate);
+        const nonBpr = estate - bpr;
+        const bands = IHT_NIL_RATE_BAND + 175_000;
+        const taxableNonBpr = Math.max(0, nonBpr - bands);
+        const noRelief = Math.max(0, estate - bands) * IHT_RATE;
+        const fullRelief = taxableNonBpr * IHT_RATE; // pre-2026
+        // Post-2026 cap.
+        const cap = 1_000_000;
+        const aboveCap = Math.max(0, bpr - cap);
+        const taxableBprAfterCap = aboveCap * 0.5;
+        const cappedRelief =
+          (taxableNonBpr + taxableBprAfterCap) * IHT_RATE;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SimBox label="IHT — no relief" value={noRelief} tone="bad" />
+              <SimBox label="IHT — pre-Apr-2026 BPR" value={fullRelief} tone="ok" />
+              <SimBox label="IHT — post-Apr-2026 cap" value={cappedRelief} tone="warn" />
+            </div>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+function Gifting7YearSim() {
+  return (
+    <MiniSim
+      title="Death within 7 years of a gift"
+      inputs={[
+        {
+          key: 'gift',
+          label: 'Gift value',
+          defaultValue: 300_000,
+          kind: 'currency',
+          min: 10_000,
+          step: 10_000,
+        },
+        {
+          key: 'yearsBeforeDeath',
+          label: 'Years between gift and death',
+          defaultValue: 5,
+          kind: 'years',
+          min: 0,
+          max: 8,
+        },
+      ]}
+      render={({ values }) => {
+        const gift = values.gift;
+        const years = Math.min(Math.max(0, values.yearsBeforeDeath), 8);
+        // Taper percentages applied to the IHT, not the gift itself.
+        // Below 3 years: 100% of IHT due. 3-4y: 80%. 4-5y: 60%. 5-6y: 40%. 6-7y: 20%. 7y+: 0%.
+        const fullIht = gift * IHT_RATE;
+        let ihtDue = fullIht;
+        if (years >= 7) ihtDue = 0;
+        else if (years >= 6) ihtDue = fullIht * 0.2;
+        else if (years >= 5) ihtDue = fullIht * 0.4;
+        else if (years >= 4) ihtDue = fullIht * 0.6;
+        else if (years >= 3) ihtDue = fullIht * 0.8;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SimBox
+                label="IHT if death immediately after the gift"
+                value={fullIht}
+                tone="bad"
+              />
+              <SimBox
+                label={`IHT after ${years} year${years === 1 ? '' : 's'}`}
+                value={ihtDue}
+                tone={ihtDue === 0 ? 'ok' : ihtDue < fullIht ? 'warn' : 'bad'}
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              Tapered relief reduces the IHT on a gift in years 3–7 of survival
+              (not the gift itself). Survival of 7 full years removes the gift
+              entirely from the estate. Note: assumes the gift is above the
+              nil-rate band; the bands themselves are applied first to the
+              estate.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+// ------------------- Misunderstood (additional) --------------------
+
+function CryptoMythSim() {
+  return (
+    <MiniSim
+      title="Crypto pay = double tax, not no tax"
+      inputs={[
+        {
+          key: 'gbpAtReceipt',
+          label: 'GBP value of crypto when paid to you',
+          defaultValue: 60_000,
+          kind: 'currency',
+          min: 1_000,
+          step: 500,
+        },
+        {
+          key: 'gbpAtSale',
+          label: 'GBP value when you later sell',
+          defaultValue: 90_000,
+          kind: 'currency',
+          min: 0,
+          step: 500,
+        },
+      ]}
+      render={({ values }) => {
+        const atReceipt = values.gbpAtReceipt;
+        const atSale = values.gbpAtSale;
+        // Income tax + NI at higher rate as illustrative.
+        const incomeTax =
+          (atReceipt - PERSONAL_ALLOWANCE > 0
+            ? Math.min(atReceipt - PERSONAL_ALLOWANCE, 37_700) * IT_BASIC +
+              Math.max(0, atReceipt - 50_270) * IT_HIGHER
+            : 0) +
+          (atReceipt > NI_PT()
+            ? niEstimate(atReceipt)
+            : 0);
+        const cgt = Math.max(0, atSale - atReceipt - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        return (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SimBox
+                label="Income tax + NI at receipt"
+                value={incomeTax}
+                tone="bad"
+              />
+              <SimBox
+                label="CGT on subsequent disposal"
+                value={cgt}
+                tone="bad"
+              />
+              <SimBox
+                label="Total tax across both events"
+                value={incomeTax + cgt}
+                tone="bad"
+              />
+            </div>
+            <p className="text-[12px] text-ink-500 dark:text-ink-400">
+              HMRC values crypto received as employment income at GBP at the
+              date of receipt — same income tax + NI as cash. Any further
+              appreciation is then taxed under CGT on sale. There is no
+              avoidance angle.
+            </p>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+// Small helpers used only by CryptoMythSim.
+function NI_PT() {
+  return PERSONAL_ALLOWANCE;
+}
+function niEstimate(salary: number) {
+  const inMain = Math.max(0, Math.min(salary, 50_270) - PERSONAL_ALLOWANCE);
+  const inUpper = Math.max(0, salary - 50_270);
+  return inMain * 0.08 + inUpper * 0.02;
 }
 
 // ------------------- helpers --------------------
