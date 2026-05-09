@@ -94,7 +94,7 @@ export function MiniSim({
         Edit any input. Numbers update live; nothing is saved anywhere.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {inputs.map((i) => {
           const kind = i.kind ?? 'currency';
           const display =
@@ -114,22 +114,32 @@ export function MiniSim({
               : kind === 'years' || kind === 'months' || kind === 'count'
                 ? 1
                 : 100);
+          // Slider needs a min and max; if either is missing, fall back to
+          // a sensible default rather than a number input.
+          const min = i.min ?? 0;
+          const max =
+            i.max ??
+            (kind === 'currency'
+              ? Math.max(working[i.key] * 4, 100_000)
+              : kind === 'percent'
+                ? 1
+                : 40);
           return (
             <label key={i.key} className="block text-sm">
               <span className="mb-1 flex items-baseline justify-between gap-2">
                 <span className="font-medium text-ink-700 dark:text-ink-200">
                   {i.label}
                 </span>
-                <span className="font-mono text-xs text-ink-500 dark:text-ink-400">
+                <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
                   {display}
                 </span>
               </span>
               <input
-                type="number"
-                className="input"
+                type="range"
+                className="w-full accent-accent-600"
                 value={working[i.key]}
-                min={i.min}
-                max={i.max}
+                min={min}
+                max={max}
                 step={step}
                 onChange={(e) => {
                   const v = Number(e.target.value);

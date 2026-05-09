@@ -4,6 +4,11 @@ import {
 } from '../../components/ui/ShowWithMyNumbers';
 import { MiniSim, SimBox } from '../../components/ui/MiniSim';
 import {
+  ComparisonBars,
+  SIM_COLORS,
+  TimeSeriesChart,
+} from '../../components/ui/SimCharts';
+import {
   computeSalaryAndDividends,
   ltdResult,
 } from '../../lib/tax';
@@ -324,58 +329,70 @@ function BorrowAgainstListedSim() {
         const annualNeed = values.personalIncomeNeed ?? 0;
         const years = Math.max(1, Math.round(values.yearsHorizon ?? 1));
 
-        // Sell route: realise enough each year to net annualNeed after CGT,
-        // assume 50% of proceeds are gain. CGT at higher rate.
         const gainFraction = 0.5;
-        const cgtPerPound = gainFraction * CGT_HIGHER; // tax on £1 of proceeds
+        const cgtPerPound = gainFraction * CGT_HIGHER;
         const annualSold = annualNeed / (1 - cgtPerPound);
-        const totalSold = annualSold * years;
-        const totalCgt = totalSold * cgtPerPound;
-
-        // Borrow route: borrow annualNeed each year; carry interest at
-        // base + 2% (illustrative ~6%) on the average drawn balance. Assume
-        // portfolio compounds at 7% gross meanwhile.
         const interestRate = 0.06;
-        // Average drawn balance over the period for interest calc.
-        let drawn = 0;
+        const growth = 0.07;
+
+        // Year-by-year evolution.
+        const data: Array<{ year: number; sell: number; borrow: number; loan: number }> = [];
+        let portfolioSell = portfolio;
+        let portfolioBorrow = portfolio;
+        let loan = 0;
+        let totalCgt = 0;
         let interestPaid = 0;
-        for (let y = 0; y < years; y++) {
-          drawn += annualNeed;
-          interestPaid += drawn * interestRate;
+        for (let y = 1; y <= years; y++) {
+          // Sell path: portfolio drops by amount sold, then grows.
+          portfolioSell = (portfolioSell - annualSold) * (1 + growth);
+          totalCgt += annualSold * cgtPerPound;
+          // Borrow path: portfolio grows untouched; loan accrues interest + new draw.
+          portfolioBorrow = portfolioBorrow * (1 + growth);
+          loan = (loan + annualNeed) * (1 + interestRate);
+          interestPaid += loan * interestRate;
+          data.push({
+            year: y,
+            sell: Math.round(portfolioSell),
+            borrow: Math.round(portfolioBorrow - loan),
+            loan: Math.round(loan),
+          });
         }
-        // Portfolio value at end — kept invested, no sales.
-        const portfolioAtEnd = portfolio * Math.pow(1.07, years);
-        const portfolioAtEndIfSold =
-          (portfolio - totalSold) * Math.pow(1.07, years);
 
         return (
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Box
+              <SimBox
                 label={`Sell route — total CGT over ${years} yrs`}
-                value={formatGBP(totalCgt)}
+                value={totalCgt}
                 tone="bad"
               />
-              <Box
-                label={`Borrow route — interest paid over ${years} yrs`}
-                value={formatGBP(interestPaid)}
+              <SimBox
+                label={`Borrow route — interest accrued over ${years} yrs`}
+                value={interestPaid}
                 tone="warn"
               />
-              <Box
+              <SimBox
                 label="Sell route — portfolio at end"
-                value={formatGBP(portfolioAtEndIfSold)}
+                value={portfolioSell}
               />
-              <Box
-                label="Borrow route — portfolio at end (loan to repay)"
-                value={formatGBP(portfolioAtEnd - drawn)}
+              <SimBox
+                label="Borrow route — portfolio at end, net of loan"
+                value={portfolioBorrow - loan}
               />
             </div>
+            <TimeSeriesChart
+              data={data}
+              series={[
+                { key: 'sell', name: 'Sell route — portfolio', color: SIM_COLORS.warn },
+                { key: 'borrow', name: 'Borrow — portfolio net of loan', color: SIM_COLORS.good },
+                { key: 'loan', name: 'Borrow — outstanding loan', color: SIM_COLORS.bad },
+              ]}
+            />
             <p className="text-[11px] text-ink-500 dark:text-ink-400">
-              Illustrative. Assumes 50% cost basis on the portfolio (so 50% of
-              every sale is taxable gain at 24% CGT), 7% gross portfolio
-              growth, and 6% interest on the borrow line. Borrow wins when
-              portfolio growth comfortably exceeds interest cost; loses badly
-              in a drawdown that triggers a margin call.
+              Illustrative. 50% cost basis on the portfolio (so 50% of every
+              sale is taxable gain at 24% CGT), 7% gross portfolio growth, 6%
+              loan interest. Borrow wins when growth comfortably exceeds
+              interest; loses badly in a drawdown that triggers a margin call.
             </p>
           </div>
         );
@@ -684,11 +701,20 @@ function PensionsLongGameSim() {
         const contrib = values.pensionContribution ?? 0;
         const years = Math.max(1, Math.round(values.yearsHorizon ?? 1));
         const growth = 0.07;
+        const personalIn = contrib * (1 - CT_MAIN_RATE) * (1 - DIV_HIGHER);
 
-        // Pension: full contribution lands, grows tax-free.
+        const data: Array<{ year: number; pension: number; personal: number }> = [];
         let pensionPot = 0;
-        for (let i = 0; i < years; i++)
+        let personalPot = 0;
+        for (let y = 1; y <= years; y++) {
           pensionPot = (pensionPot + contrib) * (1 + growth);
+          personalPot = (personalPot + personalIn) * (1 + growth);
+          data.push({
+            year: y,
+            pension: Math.round(pensionPot),
+            personal: Math.round(personalPot),
+          });
+        }
         const lumpSum = pensionPot * 0.25;
         const taxedPortion = pensionPot * 0.75;
         const pensionNetAtBasicDraw =
@@ -696,26 +722,16 @@ function PensionsLongGameSim() {
         const pensionNetAtHigherDraw =
           lumpSum + taxedPortion * (1 - IT_HIGHER);
 
-        // Personal route: same gross diverted to dividend → ISA each year.
-        // Lands as contrib × (1 - 25% CT)(1 - 33.75% div) = ~0.4969.
-        const personalIn = contrib * (1 - CT_MAIN_RATE) * (1 - DIV_HIGHER);
-        let personalPot = 0;
-        for (let i = 0; i < years; i++)
-          personalPot = (personalPot + personalIn) * (1 + growth);
-
         return (
           <div className="space-y-3">
+            <TimeSeriesChart
+              data={data}
+              series={[
+                { key: 'pension', name: 'Pension pot (pre-draw)', color: SIM_COLORS.good },
+                { key: 'personal', name: 'Personal ISA pot', color: SIM_COLORS.warn },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="Pension pot (pre-draw)"
-                value={pensionPot}
-                tone="ok"
-              />
-              <SimBox
-                label="Personal ISA pot (post-CT + div tax)"
-                value={personalPot}
-                tone="warn"
-              />
               <SimBox
                 label="Pension net @ basic-rate draw"
                 value={pensionNetAtBasicDraw}
@@ -726,13 +742,17 @@ function PensionsLongGameSim() {
                 value={pensionNetAtHigherDraw}
                 tone="ok"
               />
+              <SimBox
+                label="Personal ISA pot at end"
+                value={personalPot}
+                tone="warn"
+              />
+              <SimBox
+                label="Pension advantage at basic-rate draw"
+                value={Math.max(0, pensionNetAtBasicDraw - personalPot)}
+                tone="ok"
+              />
             </div>
-            <SimBox
-              label="Pension advantage at basic-rate draw"
-              value={Math.max(0, pensionNetAtBasicDraw - personalPot)}
-              tone="ok"
-              full
-            />
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
               Pension wins more clearly at longer horizons and when the
               retirement marginal rate is below your peak-earning rate.
@@ -781,31 +801,36 @@ function IsaDisciplineSim() {
         const years = Math.max(1, Math.round(values.years));
         const missed = Math.min(Math.round(values.missedYears), years);
         const growth = 0.07;
-        const fv = (n: number) =>
-          contrib * ((Math.pow(1 + growth, n) - 1) / growth);
-        const fullPot = fv(years);
-        const skippedPot = fv(years - missed) * Math.pow(1 + growth, missed);
-        const cost = fullPot - skippedPot;
+
+        const data: Array<{ year: number; full: number; skipped: number }> = [];
+        let full = 0;
+        let skipped = 0;
+        for (let y = 1; y <= years; y++) {
+          full = (full + contrib) * (1 + growth);
+          // Skip the FIRST `missed` years.
+          const contribThisYear = y <= missed ? 0 : contrib;
+          skipped = (skipped + contribThisYear) * (1 + growth);
+          data.push({
+            year: y,
+            full: Math.round(full),
+            skipped: Math.round(skipped),
+          });
+        }
+        const cost = full - skipped;
         return (
           <div className="space-y-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="Pot at end — every year used"
-                value={fullPot}
-                tone="ok"
-              />
-              <SimBox
-                label="Pot at end — with skipped years"
-                value={skippedPot}
-                tone="warn"
-              />
-            </div>
-            <SimBox
-              label="Cost of those skipped years"
-              value={cost}
-              tone="bad"
-              full
+            <TimeSeriesChart
+              data={data}
+              series={[
+                { key: 'full', name: 'Every year used', color: SIM_COLORS.good },
+                { key: 'skipped', name: 'With skipped years', color: SIM_COLORS.warn },
+              ]}
             />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SimBox label="Pot — every year used" value={full} tone="ok" />
+              <SimBox label="Pot — with skipped years" value={skipped} tone="warn" />
+              <SimBox label="Cost of skipped years" value={cost} tone="bad" />
+            </div>
           </div>
         );
       }}
@@ -927,18 +952,17 @@ function BusinessReliefAimSim() {
           (taxableNonBpr + taxableBprPost) * IHT_RATE;
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'No relief', value: ihtNoRelief, color: SIM_COLORS.bad },
+                { label: 'Pre-Apr-2026 (100%)', value: ihtPre2026, color: SIM_COLORS.good },
+                { label: 'Post-Apr-2026 (£1m cap)', value: ihtPost2026, color: SIM_COLORS.warn },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
-              <SimBox label="IHT — no relief" value={ihtNoRelief} tone="bad" />
-              <SimBox
-                label="IHT — pre-Apr-2026 BPR (100%)"
-                value={ihtPre2026}
-                tone="ok"
-              />
-              <SimBox
-                label="IHT — post-Apr-2026 BPR (£1m cap)"
-                value={ihtPost2026}
-                tone="warn"
-              />
+              <SimBox label="No relief" value={ihtNoRelief} tone="bad" />
+              <SimBox label="Pre-Apr-2026" value={ihtPre2026} tone="ok" />
+              <SimBox label="Post-Apr-2026" value={ihtPost2026} tone="warn" />
             </div>
             <SimBox
               label="Cap impact on this estate"
@@ -1054,17 +1078,15 @@ function BadrQualificationSim() {
         const cgtBadrSafe = Math.max(0, cgtBadr);
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'No BADR (24%)', value: cgtFull, color: SIM_COLORS.bad },
+                { label: 'With BADR (14% on £1m)', value: cgtBadrSafe, color: SIM_COLORS.good },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="CGT @ standard 24%"
-                value={cgtFull}
-                tone="bad"
-              />
-              <SimBox
-                label="CGT with BADR (14% on first £1m)"
-                value={cgtBadrSafe}
-                tone="ok"
-              />
+              <SimBox label="CGT @ standard 24%" value={cgtFull} tone="bad" />
+              <SimBox label="CGT with BADR" value={cgtBadrSafe} tone="ok" />
             </div>
             <SimBox
               label="BADR saving"
@@ -1104,19 +1126,15 @@ function EotSaleSim() {
         const eotNet = v;
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'Trade sale net', value: tradeNet, color: SIM_COLORS.warn },
+                { label: 'EOT net (0% CGT)', value: eotNet, color: SIM_COLORS.good },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="Trade-sale CGT (BADR + main)"
-                value={tradeTotal}
-                tone="bad"
-              />
-              <SimBox
-                label="EOT CGT"
-                value={0}
-                tone="ok"
-              />
-              <SimBox label="Trade-sale net" value={tradeNet} tone="warn" />
-              <SimBox label="EOT net" value={eotNet} tone="ok" />
+              <SimBox label="Trade-sale CGT" value={tradeTotal} tone="bad" />
+              <SimBox label="EOT CGT" value={0} tone="ok" />
             </div>
             <SimBox
               label="EOT advantage on the headline number"
@@ -1153,22 +1171,19 @@ function EarnOutsSim() {
       ]}
       render={({ values }) => {
         const eo = values.earnout;
-        // Capital with BADR (assume room): 14%; employment income: 47% (45% IT + 2% NI).
         const capitalTax = eo * BADR_RATE;
         const incomeTax = eo * 0.47;
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'Capital (BADR 14%)', value: capitalTax, color: SIM_COLORS.good },
+                { label: 'Employment income (47%)', value: incomeTax, color: SIM_COLORS.bad },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="If treated as capital (BADR-eligible)"
-                value={capitalTax}
-                tone="ok"
-              />
-              <SimBox
-                label="If treated as employment income"
-                value={incomeTax}
-                tone="bad"
-              />
+              <SimBox label="Capital treatment" value={capitalTax} tone="ok" />
+              <SimBox label="Income treatment" value={incomeTax} tone="bad" />
             </div>
             <SimBox
               label="Cost of getting the structure wrong"
@@ -1202,23 +1217,19 @@ function EquityVsCashSim() {
       ]}
       render={({ values }) => {
         const amt = values.amount;
-        // Cash bonus: 47% combined (IT + NI on the marginal slice).
         const cashNet = amt * (1 - 0.47);
-        // Growth equity (BADR-eligible): 14%.
         const equityNet = amt * (1 - BADR_RATE);
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'Cash bonus (47%)', value: cashNet, color: SIM_COLORS.warn },
+                { label: 'BADR equity (14%)', value: equityNet, color: SIM_COLORS.good },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="Cash bonus net (47% combined)"
-                value={cashNet}
-                tone="warn"
-              />
-              <SimBox
-                label="BADR-eligible equity net (14%)"
-                value={equityNet}
-                tone="ok"
-              />
+              <SimBox label="Cash bonus net" value={cashNet} tone="warn" />
+              <SimBox label="BADR equity net" value={equityNet} tone="ok" />
             </div>
             <SimBox
               label="Tax saved by routing through equity"
@@ -1254,17 +1265,15 @@ function CapitalVsIncomeSim() {
         const income = g * 0.47;
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'Capital (24% CGT)', value: capital, color: SIM_COLORS.good },
+                { label: 'Trading income (47%)', value: income, color: SIM_COLORS.bad },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
-              <SimBox
-                label="Treated as capital (24% CGT)"
-                value={capital}
-                tone="ok"
-              />
-              <SimBox
-                label="Treated as trading income (47%)"
-                value={income}
-                tone="bad"
-              />
+              <SimBox label="Capital classification" value={capital} tone="ok" />
+              <SimBox label="Income classification" value={income} tone="bad" />
             </div>
             <SimBox
               label="Cost of recharacterisation"
@@ -1534,10 +1543,17 @@ function IhtBprSim() {
           (taxableNonBpr + taxableBprAfterCap) * IHT_RATE;
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                { label: 'No relief', value: noRelief, color: SIM_COLORS.bad },
+                { label: 'Pre-Apr-2026', value: fullRelief, color: SIM_COLORS.good },
+                { label: 'Post-Apr-2026', value: cappedRelief, color: SIM_COLORS.warn },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
-              <SimBox label="IHT — no relief" value={noRelief} tone="bad" />
-              <SimBox label="IHT — pre-Apr-2026 BPR" value={fullRelief} tone="ok" />
-              <SimBox label="IHT — post-Apr-2026 cap" value={cappedRelief} tone="warn" />
+              <SimBox label="No relief" value={noRelief} tone="bad" />
+              <SimBox label="Pre-Apr-2026" value={fullRelief} tone="ok" />
+              <SimBox label="Post-Apr-2026 cap" value={cappedRelief} tone="warn" />
             </div>
           </div>
         );
@@ -1571,17 +1587,30 @@ function Gifting7YearSim() {
       render={({ values }) => {
         const gift = values.gift;
         const years = Math.min(Math.max(0, values.yearsBeforeDeath), 8);
-        // Taper percentages applied to the IHT, not the gift itself.
-        // Below 3 years: 100% of IHT due. 3-4y: 80%. 4-5y: 60%. 5-6y: 40%. 6-7y: 20%. 7y+: 0%.
         const fullIht = gift * IHT_RATE;
-        let ihtDue = fullIht;
-        if (years >= 7) ihtDue = 0;
-        else if (years >= 6) ihtDue = fullIht * 0.2;
-        else if (years >= 5) ihtDue = fullIht * 0.4;
-        else if (years >= 4) ihtDue = fullIht * 0.6;
-        else if (years >= 3) ihtDue = fullIht * 0.8;
+        const ihtAt = (yrs: number) => {
+          if (yrs >= 7) return 0;
+          if (yrs >= 6) return fullIht * 0.2;
+          if (yrs >= 5) return fullIht * 0.4;
+          if (yrs >= 4) return fullIht * 0.6;
+          if (yrs >= 3) return fullIht * 0.8;
+          return fullIht;
+        };
+        const data = Array.from({ length: 9 }, (_, y) => ({
+          year: y,
+          iht: Math.round(ihtAt(y)),
+        }));
+        const ihtDue = ihtAt(years);
         return (
           <div className="space-y-3">
+            <TimeSeriesChart
+              data={data}
+              series={[
+                { key: 'iht', name: 'IHT due on death this year', color: SIM_COLORS.bad },
+              ]}
+              xKey="year"
+              yFormat={(v) => `£${Math.round(v / 1000)}k`}
+            />
             <div className="grid gap-3 sm:grid-cols-2">
               <SimBox
                 label="IHT if death immediately after the gift"
@@ -1597,9 +1626,7 @@ function Gifting7YearSim() {
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
               Tapered relief reduces the IHT on a gift in years 3–7 of survival
               (not the gift itself). Survival of 7 full years removes the gift
-              entirely from the estate. Note: assumes the gift is above the
-              nil-rate band; the bands themselves are applied first to the
-              estate.
+              entirely. Assumes the gift is above the nil-rate band.
             </p>
           </div>
         );
@@ -1645,19 +1672,26 @@ function CryptoMythSim() {
             ? niEstimate(atReceipt)
             : 0);
         const cgt = Math.max(0, atSale - atReceipt - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const cashOnlyIncomeTax = incomeTax; // identical IT/NI on a cash salary
         return (
           <div className="space-y-3">
+            <ComparisonBars
+              bars={[
+                {
+                  label: 'Cash salary (IT + NI only)',
+                  value: cashOnlyIncomeTax,
+                  color: SIM_COLORS.warn,
+                },
+                {
+                  label: 'Crypto pay (IT + NI + CGT)',
+                  value: incomeTax + cgt,
+                  color: SIM_COLORS.bad,
+                },
+              ]}
+            />
             <div className="grid gap-3 sm:grid-cols-3">
-              <SimBox
-                label="Income tax + NI at receipt"
-                value={incomeTax}
-                tone="bad"
-              />
-              <SimBox
-                label="CGT on subsequent disposal"
-                value={cgt}
-                tone="bad"
-              />
+              <SimBox label="IT + NI at receipt" value={incomeTax} tone="bad" />
+              <SimBox label="CGT on subsequent disposal" value={cgt} tone="bad" />
               <SimBox
                 label="Total tax across both events"
                 value={incomeTax + cgt}

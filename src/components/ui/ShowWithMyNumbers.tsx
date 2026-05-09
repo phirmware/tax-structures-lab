@@ -132,30 +132,35 @@ export function ShowWithMyNumbers({
         Edit any input to see this lesson applied to your situation. Your numbers are saved locally.
       </p>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {inputs.map((i) => {
           const profileLabel = PROFILE_FIELDS.find((f) => f.key === i.key)?.label;
           const label = i.label ?? profileLabel ?? String(i.key);
           const isYears = i.key === 'yearsHorizon';
+          const min = i.min ?? 0;
+          const max =
+            i.max ??
+            (isYears ? 40 : Math.max(working[i.key] * 4, 100_000));
+          const step = i.step ?? (isYears ? 1 : 100);
           return (
             <label key={i.key} className="block text-sm">
               <span className="mb-1 flex items-baseline justify-between gap-2">
                 <span className="font-medium text-ink-700 dark:text-ink-200">
                   {label}
                 </span>
-                <span className="font-mono text-xs text-ink-500 dark:text-ink-400">
+                <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
                   {isYears
                     ? `${working[i.key]} yr${working[i.key] === 1 ? '' : 's'}`
                     : `£${Math.round(working[i.key]).toLocaleString('en-GB')}`}
                 </span>
               </span>
               <input
-                type="number"
-                className="input"
+                type="range"
+                className="w-full accent-accent-600"
                 value={working[i.key]}
-                min={i.min}
-                max={i.max}
-                step={i.step ?? (isYears ? 1 : 100)}
+                min={min}
+                max={max}
+                step={step}
                 onChange={(e) => {
                   const v = Number(e.target.value);
                   setOne(i.key, isFinite(v) ? v : 0);
