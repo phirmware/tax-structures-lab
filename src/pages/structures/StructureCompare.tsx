@@ -14,7 +14,7 @@ import {
   YAxis,
   Legend,
 } from 'recharts';
-import { CashFlowDiagram } from '../../components/diagrams/CashFlowDiagram';
+import { FullscreenDiagram } from '../../components/diagrams/CashFlowDiagram';
 import { buildLtdFlow, buildSoleTraderFlow } from '../../components/diagrams/buildFlow';
 
 const SAME_EXAMPLE = {
@@ -213,7 +213,7 @@ function FlowSection({
         <div className="text-sm font-semibold">{title}</div>
       </header>
       <div className="px-2 py-3 sm:px-3">
-        <CashFlowDiagram {...flow} />
+        <FullscreenDiagram title={title} {...flow} />
       </div>
     </div>
   );

@@ -8,8 +8,8 @@ import {
   buildSoleTraderFlow,
 } from '../../components/diagrams/buildFlow';
 import {
-  CashFlowDiagram,
   CashFlowLegend,
+  FullscreenDiagram,
 } from '../../components/diagrams/CashFlowDiagram';
 import { formatGBP, formatPct } from '../../lib/format';
 import { useAppState } from '../../state/AppState';
@@ -109,7 +109,7 @@ export function LabScenarios() {
             <CashFlowLegend />
           </header>
           <div className="px-2 py-4 sm:px-4">
-            <CashFlowDiagram {...buildSoleTraderFlow(sole)} />
+            <FullscreenDiagram title="Sole trader" {...buildSoleTraderFlow(sole)} />
           </div>
         </section>
       )}
@@ -127,7 +127,7 @@ export function LabScenarios() {
             <CashFlowLegend />
           </header>
           <div className="px-2 py-4 sm:px-4">
-            <CashFlowDiagram {...buildLtdFlow(ltd)} />
+            <FullscreenDiagram title="Limited company" {...buildLtdFlow(ltd)} />
           </div>
         </section>
       )}

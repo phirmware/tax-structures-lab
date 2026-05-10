@@ -4,8 +4,8 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { ltdResult, soleTraderResult } from '../../lib/tax';
 import {
-  CashFlowDiagram,
   CashFlowLegend,
+  FullscreenDiagram,
 } from '../../components/diagrams/CashFlowDiagram';
 import { buildLtdFlow, buildSoleTraderFlow } from '../../components/diagrams/buildFlow';
 import { LabBreakdown } from '../lab/LabBreakdown';
@@ -116,7 +116,7 @@ export function ScenarioDetail() {
             <CashFlowLegend />
           </header>
           <div className="px-2 py-4 sm:px-4">
-            <CashFlowDiagram {...buildSoleTraderFlow(sole)} />
+            <FullscreenDiagram title="Sole trader" {...buildSoleTraderFlow(sole)} />
           </div>
         </section>
       )}
@@ -128,7 +128,7 @@ export function ScenarioDetail() {
             <CashFlowLegend />
           </header>
           <div className="px-2 py-4 sm:px-4">
-            <CashFlowDiagram {...buildLtdFlow(ltd)} />
+            <FullscreenDiagram title="Limited company" {...buildLtdFlow(ltd)} />
           </div>
           <div className="border-t border-ink-200 bg-ink-50/40 px-5 py-4 dark:border-ink-800 dark:bg-ink-950/40">
             <LabBreakdown ltd={ltd} />

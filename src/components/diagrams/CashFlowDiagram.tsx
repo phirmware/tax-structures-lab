@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { formatGBP } from '../../lib/format';
+import { X, Expand } from '../ui/Icons';
 
 export type FlowKind = 'cost' | 'tax' | 'net' | 'transit' | 'retain';
 
@@ -183,6 +185,78 @@ export function CashFlowDiagram({
         })}
       </svg>
     </div>
+  );
+}
+
+export function FullscreenDiagram({
+  title,
+  ...props
+}: DiagramProps & { title?: string }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  return (
+    <>
+      <div>
+        <div className="flex justify-end pb-1 pr-1">
+          <button
+            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-ink-200"
+            onClick={() => setOpen(true)}
+            aria-label="View fullscreen"
+          >
+            <Expand className="h-3.5 w-3.5" />
+            Expand
+          </button>
+        </div>
+        <CashFlowDiagram {...props} />
+      </div>
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex flex-col bg-white/97 backdrop-blur-sm dark:bg-ink-950/97"
+            onClick={() => setOpen(false)}
+          >
+            <div
+              className="flex shrink-0 items-center justify-between border-b border-ink-200 px-6 py-3 dark:border-ink-800"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-4">
+                {title && (
+                  <span className="text-sm font-semibold text-ink-900 dark:text-ink-100">{title}</span>
+                )}
+                <CashFlowLegend />
+              </div>
+              <button
+                className="rounded p-2 text-ink-500 transition hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-ink-100"
+                onClick={() => setOpen(false)}
+                aria-label="Close fullscreen"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div
+              className="flex flex-1 items-center justify-center overflow-auto p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-full max-w-6xl">
+                <CashFlowDiagram {...props} />
+              </div>
+            </div>
+            <p className="shrink-0 pb-3 text-center text-xs text-ink-400 dark:text-ink-500">
+              Press Esc or click outside to close
+            </p>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 

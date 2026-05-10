@@ -6,7 +6,7 @@ import {
   soleTraderResult,
   type ExtractionStrategy,
 } from '../../lib/tax';
-import { CashFlowDiagram, CashFlowLegend } from '../../components/diagrams/CashFlowDiagram';
+import { CashFlowLegend, FullscreenDiagram } from '../../components/diagrams/CashFlowDiagram';
 import { buildLtdFlow, buildSoleTraderFlow } from '../../components/diagrams/buildFlow';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
@@ -431,7 +431,8 @@ function FlowCard({
         <CashFlowLegend />
       </header>
       <div className="px-2 py-4 sm:px-4">
-        <CashFlowDiagram
+        <FullscreenDiagram
+          title={title}
           nodes={flow.nodes}
           edges={flow.edges}
           layout={flow.layout}

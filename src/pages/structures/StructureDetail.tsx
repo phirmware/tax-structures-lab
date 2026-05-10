@@ -4,8 +4,8 @@ import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { getStructure, STRUCTURES } from '../../content/structures';
 import { ltdResult, soleTraderResult } from '../../lib/tax';
 import {
-  CashFlowDiagram,
   CashFlowLegend,
+  FullscreenDiagram,
 } from '../../components/diagrams/CashFlowDiagram';
 import { buildLtdFlow, buildSoleTraderFlow } from '../../components/diagrams/buildFlow';
 import { formatGBP } from '../../lib/format';
@@ -204,7 +204,7 @@ export function StructureDetail() {
                 )}
               </div>
             </div>
-            <CashFlowDiagram {...flow} />
+            <FullscreenDiagram title={s.shortName} {...flow} />
           </div>
         </section>
       ) : (
