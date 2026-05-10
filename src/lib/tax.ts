@@ -401,9 +401,14 @@ export function ltdResult(inputs: LtdInputs): LtdResult {
   const rdReliefBenefit = rdSpend * 0.162;
 
   const operatingCosts = inputs.costs + inputs.ownerSalary + employerNi + pension;
-  const preTaxProfit = Math.max(0, inputs.revenue - operatingCosts) + rdReliefBenefit;
+  // preTaxProfit can be negative — company is at a loss when salary+erNI exceeds operating profit.
+  // We don't clamp here; the diagram and breakdown show the deficit honestly.
+  const preTaxProfit = inputs.revenue - operatingCosts + rdReliefBenefit;
   const ct = corporationTax(preTaxProfit);
   const postTaxProfit = preTaxProfit - ct.total;
+
+  // Only distributable if the company is in profit after tax.
+  const distributable = Math.max(0, postTaxProfit);
 
   // Figure out how much dividend is needed to give desiredCash on top of net salary.
   // Use bisection — accurate even with bands.
@@ -412,7 +417,7 @@ export function ltdResult(inputs: LtdInputs): LtdResult {
   const cashStillNeeded = Math.max(0, inputs.desiredCash - cashFromSalary);
 
   let lo = 0;
-  let hi = postTaxProfit;
+  let hi = distributable;
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
     const mix = computeSalaryAndDividends(inputs.ownerSalary, mid);
@@ -420,8 +425,8 @@ export function ltdResult(inputs: LtdInputs): LtdResult {
     if (personalCash >= inputs.desiredCash) hi = mid;
     else lo = mid;
   }
-  const dividendDeclared = Math.min(hi, postTaxProfit);
-  const retainedEarnings = Math.max(0, postTaxProfit - dividendDeclared);
+  const dividendDeclared = Math.min(hi, distributable);
+  const retainedEarnings = Math.max(0, distributable - dividendDeclared);
 
   const personal = computeSalaryAndDividends(inputs.ownerSalary, dividendDeclared);
   const totalTaxToHmrc =
@@ -460,6 +465,134 @@ export function recommendedSalary(strategy: ExtractionStrategy): number {
     case 'retain':
       return 12_570;
   }
+}
+
+/**
+ * Maximum director salary the company can pay without running a pre-tax loss.
+ * Solves: salary + max(0, salary − NI_ER_THRESHOLD) × NI_ER_RATE = available
+ */
+export function maxDirectorSalary(revenue: number, costs: number, pension = 0): number {
+  const available = Math.max(0, revenue - costs - pension);
+  if (available <= NI_ER_THRESHOLD) return available;
+  // salary × (1 + NI_ER_RATE) − NI_ER_THRESHOLD × NI_ER_RATE = available
+  return (available + NI_ER_THRESHOLD * NI_ER_RATE) / (1 + NI_ER_RATE);
+}
+
+// ---------- Partnership / LLP ----------
+
+export interface PartnershipResult {
+  revenue: number;
+  costs: number;
+  profit: number;
+  numPartners: number;
+  profitPerPartner: number;
+  itPerPartner: number;
+  class4NIPerPartner: number;
+  taxPerPartner: number;
+  netPerPartner: number;
+  totalTaxToHmrc: number;
+  totalNetToOwners: number;
+  effectiveTaxRate: number;
+}
+
+export function partnershipResult(
+  revenue: number,
+  costs: number,
+  numPartners = 2,
+): PartnershipResult {
+  const profit = Math.max(0, revenue - costs);
+  const profitPerPartner = profit / numPartners;
+  const it = incomeTaxOnSalary(profitPerPartner).total;
+  const ni = class4NI(profitPerPartner);
+  const taxPerPartner = it + ni;
+  const netPerPartner = profitPerPartner - taxPerPartner;
+  return {
+    revenue,
+    costs,
+    profit,
+    numPartners,
+    profitPerPartner,
+    itPerPartner: it,
+    class4NIPerPartner: ni,
+    taxPerPartner,
+    netPerPartner,
+    totalTaxToHmrc: taxPerPartner * numPartners,
+    totalNetToOwners: netPerPartner * numPartners,
+    effectiveTaxRate: profit > 0 ? (taxPerPartner * numPartners) / profit : 0,
+  };
+}
+
+// ---------- Umbrella company ----------
+
+export interface UmbrellaResult {
+  revenue: number;
+  umbrellaFee: number;
+  employerNI: number;
+  grossPay: number;
+  itOnPay: number;
+  employeeNI: number;
+  totalTax: number;
+  netToContractor: number;
+  effectiveTaxRate: number;
+}
+
+export function umbrellaResult(revenue: number, umbrellaFee = 2_400): UmbrellaResult {
+  // Umbrella absorbs fee first; remaining must cover employer NI + gross pay.
+  // maxDirectorSalary solves: pay + employerNI(pay) = available.
+  const grossPay = maxDirectorSalary(revenue, umbrellaFee);
+  const erNI = employerNI(grossPay);
+  const it = incomeTaxOnSalary(grossPay).total;
+  const eeNI = employeeNI(grossPay).total;
+  const totalTax = erNI + it + eeNI;
+  return {
+    revenue,
+    umbrellaFee,
+    employerNI: erNI,
+    grossPay,
+    itOnPay: it,
+    employeeNI: eeNI,
+    totalTax,
+    netToContractor: grossPay - it - eeNI,
+    effectiveTaxRate: revenue > 0 ? totalTax / revenue : 0,
+  };
+}
+
+// ---------- Ltd inside IR35 (deemed employment) ----------
+
+export interface Ir35Result {
+  revenue: number;
+  costs: number;
+  available: number;
+  employerNI: number;
+  deemedSalary: number;
+  itOnSalary: number;
+  employeeNI: number;
+  totalTax: number;
+  netToContractor: number;
+  effectiveTaxRate: number;
+}
+
+export function ir35Result(revenue: number, costs: number): Ir35Result {
+  // IR35: all income treated as employment. Costs deduction preserved;
+  // remainder becomes deemed salary on which both employer + employee NI apply.
+  const deemedSalary = maxDirectorSalary(revenue, costs);
+  const erNI = employerNI(deemedSalary);
+  const it = incomeTaxOnSalary(deemedSalary).total;
+  const eeNI = employeeNI(deemedSalary).total;
+  const totalTax = erNI + it + eeNI;
+  const available = Math.max(0, revenue - costs);
+  return {
+    revenue,
+    costs,
+    available,
+    employerNI: erNI,
+    deemedSalary,
+    itOnSalary: it,
+    employeeNI: eeNI,
+    totalTax,
+    netToContractor: deemedSalary - it - eeNI,
+    effectiveTaxRate: available > 0 ? totalTax / available : 0,
+  };
 }
 
 // ---------- Multi-year compounding helper ----------

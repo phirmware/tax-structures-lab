@@ -2,12 +2,24 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppState } from '../../state/AppState';
 import {
+  ir35Result,
   ltdResult,
+  partnershipResult,
   soleTraderResult,
+  umbrellaResult,
   type ExtractionStrategy,
+  maxDirectorSalary,
 } from '../../lib/tax';
 import { CashFlowLegend, FullscreenDiagram } from '../../components/diagrams/CashFlowDiagram';
-import { buildLtdFlow, buildSoleTraderFlow } from '../../components/diagrams/buildFlow';
+import {
+  buildHoldingFlow,
+  buildIr35Flow,
+  buildLlpFlow,
+  buildLtdFlow,
+  buildPartnershipFlow,
+  buildSoleTraderFlow,
+  buildUmbrellaFlow,
+} from '../../components/diagrams/buildFlow';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { Slider } from '../../components/ui/Slider';
@@ -17,7 +29,12 @@ import { LabBreakdown } from './LabBreakdown';
 
 const STRUCTURES = [
   { id: 'sole-trader', label: 'Sole trader' },
+  { id: 'partnership', label: 'Partnership (2 partners)' },
+  { id: 'llp', label: 'LLP (2 members)' },
+  { id: 'umbrella', label: 'Umbrella company' },
+  { id: 'ltd-ir35', label: 'Ltd (inside IR35)' },
   { id: 'ltd', label: 'Limited company' },
+  { id: 'holding', label: 'Holding company' },
 ];
 
 const STRATEGY_LABEL: Record<ExtractionStrategy, string> = {
@@ -34,6 +51,7 @@ interface LabInputs {
   ownerSalary: number;
   pensionContribution: number;
   rdEligibleSpend: number;
+  umbrellaFee: number;
   selected: string[];
   strategy: ExtractionStrategy;
 }
@@ -45,6 +63,7 @@ const DEFAULTS: LabInputs = {
   ownerSalary: 12_570,
   pensionContribution: 0,
   rdEligibleSpend: 0,
+  umbrellaFee: 2_400,
   selected: ['sole-trader', 'ltd'],
   strategy: 'balanced',
 };
@@ -77,6 +96,9 @@ export function CashFlowLab() {
 
   const results = useMemo(() => {
     const sole = soleTraderResult(inputs.revenue, inputs.costs);
+    const partnership = partnershipResult(inputs.revenue, inputs.costs, 2);
+    const umbrella = umbrellaResult(inputs.revenue, inputs.umbrellaFee);
+    const ir35 = ir35Result(inputs.revenue, inputs.costs);
     const ltd = ltdResult({
       revenue: inputs.revenue,
       costs: inputs.costs,
@@ -85,10 +107,11 @@ export function CashFlowLab() {
       pensionContribution: inputs.pensionContribution,
       rdEligibleSpend: inputs.rdEligibleSpend,
     });
-    return { sole, ltd };
+    return { sole, partnership, umbrella, ir35, ltd };
   }, [inputs]);
 
   const summary = useMemo(() => {
+    const operatingProfit = inputs.revenue - inputs.costs;
     return [
       {
         id: 'sole-trader',
@@ -99,38 +122,72 @@ export function CashFlowLab() {
         rate: results.sole.effectiveTaxRate,
       },
       {
+        id: 'partnership',
+        label: 'Partnership (2 partners)',
+        net: results.partnership.totalNetToOwners,
+        tax: results.partnership.totalTaxToHmrc,
+        retained: 0,
+        rate: results.partnership.effectiveTaxRate,
+      },
+      {
+        id: 'llp',
+        label: 'LLP (2 members)',
+        net: results.partnership.totalNetToOwners,
+        tax: results.partnership.totalTaxToHmrc,
+        retained: 0,
+        rate: results.partnership.effectiveTaxRate,
+      },
+      {
+        id: 'umbrella',
+        label: 'Umbrella company',
+        net: results.umbrella.netToContractor,
+        tax: results.umbrella.totalTax,
+        retained: 0,
+        rate: results.umbrella.effectiveTaxRate,
+      },
+      {
+        id: 'ltd-ir35',
+        label: 'Ltd (inside IR35)',
+        net: results.ir35.netToContractor,
+        tax: results.ir35.totalTax,
+        retained: 0,
+        rate: results.ir35.effectiveTaxRate,
+      },
+      {
         id: 'ltd',
         label: 'Limited company',
         net: results.ltd.ownerTotalNet,
         tax: results.ltd.totalTaxToHmrc,
         retained: results.ltd.companyRetained,
-        rate:
-          inputs.revenue - inputs.costs > 0
-            ? results.ltd.totalTaxToHmrc / (inputs.revenue - inputs.costs)
-            : 0,
+        rate: operatingProfit > 0 ? results.ltd.totalTaxToHmrc / operatingProfit : 0,
+      },
+      {
+        id: 'holding',
+        label: 'Holding company',
+        net: results.ltd.ownerTotalNet,
+        tax: results.ltd.totalTaxToHmrc,
+        retained: results.ltd.companyRetained,
+        rate: operatingProfit > 0 ? results.ltd.totalTaxToHmrc / operatingProfit : 0,
       },
     ].filter((r) => inputs.selected.includes(r.id));
   }, [results, inputs.selected, inputs.revenue, inputs.costs]);
 
-  const update = (patch: Partial<LabInputs>) => setInputs((p) => ({ ...p, ...patch }));
+  const update = (patch: Partial<LabInputs>) => {
+    setInputs((p) => {
+      const next = { ...p, ...patch };
+      const maxSalary = maxDirectorSalary(next.revenue, next.costs, next.pensionContribution);
+      return { ...next, ownerSalary: Math.min(next.ownerSalary, maxSalary) };
+    });
+  };
 
   const setStrategy = (s: ExtractionStrategy) => {
-    let salary = inputs.ownerSalary;
-    let pension = inputs.pensionContribution;
-    if (s === 'salary-heavy') {
-      salary = 70_000;
-      pension = 0;
-    } else if (s === 'dividend-heavy') {
-      salary = 12_570;
-      pension = 0;
-    } else if (s === 'balanced') {
-      salary = 12_570;
-      pension = 0;
-    } else if (s === 'retain') {
-      salary = 12_570;
-      pension = 0;
-    }
-    update({ strategy: s, ownerSalary: salary, pensionContribution: pension });
+    setInputs((p) => {
+      const maxSalary = maxDirectorSalary(p.revenue, p.costs, p.pensionContribution);
+      let salary = p.ownerSalary;
+      if (s === 'salary-heavy') salary = Math.min(70_000, maxSalary);
+      else if (s === 'dividend-heavy' || s === 'balanced' || s === 'retain') salary = Math.min(12_570, maxSalary);
+      return { ...p, strategy: s, ownerSalary: salary };
+    });
   };
 
   const handleSave = () => {
@@ -219,10 +276,10 @@ export function CashFlowLab() {
               label="Director salary (Ltd)"
               value={inputs.ownerSalary}
               min={0}
-              max={150_000}
+              max={Math.floor(maxDirectorSalary(inputs.revenue, inputs.costs, inputs.pensionContribution))}
               step={500}
               onChange={(v) => update({ ownerSalary: v })}
-              hint="Salary the company pays you"
+              hint="Capped at the maximum the company can afford without running at a loss"
             />
             <Slider
               label="Employer pension contribution"
@@ -242,6 +299,17 @@ export function CashFlowLab() {
               onChange={(v) => update({ rdEligibleSpend: v })}
               hint="Illustrative ~16.2% credit on qualifying spend"
             />
+            {inputs.selected.includes('umbrella') && (
+              <Slider
+                label="Umbrella annual fee"
+                value={inputs.umbrellaFee}
+                min={0}
+                max={5_000}
+                step={100}
+                onChange={(v) => update({ umbrellaFee: v })}
+                hint="Umbrella company margin fee (typically £1,500–3,000/yr)"
+              />
+            )}
 
             <div>
               <label className="mb-1 block text-sm font-medium">Compare structures</label>
@@ -337,11 +405,53 @@ export function CashFlowLab() {
             </FlowCard>
           )}
 
+          {inputs.selected.includes('partnership') && (
+            <FlowCard
+              title="Partnership (2 equal partners)"
+              subtitle="Profit splits equally; each partner pays IT + Class 4 NI on their share"
+              flow={buildPartnershipFlow(results.partnership)}
+            />
+          )}
+
+          {inputs.selected.includes('llp') && (
+            <FlowCard
+              title="LLP (2 equal members)"
+              subtitle="Same tax treatment as a partnership — members taxed as self-employed on their share"
+              flow={buildLlpFlow(results.partnership)}
+            />
+          )}
+
+          {inputs.selected.includes('umbrella') && (
+            <FlowCard
+              title="Umbrella company"
+              subtitle="Contractor employed by umbrella; full employment taxes apply, no CT or dividend option"
+              flow={buildUmbrellaFlow(results.umbrella)}
+            />
+          )}
+
+          {inputs.selected.includes('ltd-ir35') && (
+            <FlowCard
+              title="Ltd (inside IR35)"
+              subtitle="All income treated as deemed employment — no dividend advantage, no CT retention"
+              flow={buildIr35Flow(results.ir35)}
+            />
+          )}
+
           {inputs.selected.includes('ltd') && (
             <FlowCard
               title="Limited company"
               subtitle="Two-layer system: company pays CT, you pay personal tax on what you extract"
               flow={buildLtdFlow(results.ltd)}
+            >
+              <LabBreakdown ltd={results.ltd} />
+            </FlowCard>
+          )}
+
+          {inputs.selected.includes('holding') && (
+            <FlowCard
+              title="Holding company"
+              subtitle="OpCo pays CT then sweeps post-tax profit to HoldCo tax-free — owner extracts from HoldCo when ready"
+              flow={buildHoldingFlow(results.ltd)}
             >
               <LabBreakdown ltd={results.ltd} />
             </FlowCard>
