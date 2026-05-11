@@ -11,6 +11,7 @@ import { StructureCompare } from './pages/structures/StructureCompare';
 import { CashFlowLab } from './pages/lab/CashFlowLab';
 import { LabScenarios } from './pages/lab/LabScenarios';
 import { MultiYearLab } from './pages/lab/MultiYearLab';
+import { StructureBuilderLab } from './pages/lab/StructureBuilderLab';
 import { UkOverview } from './pages/uk/UkOverview';
 import { UkTopic } from './pages/uk/UkTopic';
 import { PatternsOverview } from './pages/patterns/PatternsOverview';
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/structures/:structureId" element={<StructureDetail />} />
 
               <Route path="/lab" element={<CashFlowLab />} />
+              <Route path="/lab/builder" element={<StructureBuilderLab />} />
               <Route path="/lab/scenarios" element={<LabScenarios />} />
               <Route path="/lab/multi-year" element={<MultiYearLab />} />
 

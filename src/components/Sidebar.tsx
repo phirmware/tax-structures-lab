@@ -33,6 +33,7 @@ const SECTIONS = [
     title: '3. Cash Flow Lab',
     items: [
       { to: '/lab', label: 'Open the simulator' },
+      { to: '/lab/builder', label: 'Structure builder' },
       { to: '/lab/scenarios', label: 'Pre-built scenarios' },
       { to: '/lab/multi-year', label: 'Multi-year mode' },
     ],
