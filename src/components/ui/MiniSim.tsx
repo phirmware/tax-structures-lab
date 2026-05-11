@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Calculator } from './Icons';
-import { formatGBP } from '../../lib/format';
+import { clamp, formatGBP } from '../../lib/format';
 
 export type MiniSimInputKind =
   | 'currency'
@@ -24,6 +24,42 @@ interface RenderArgs {
   values: Record<string, number>;
 }
 
+type InputBounds = Record<string, { min: number; max: number; step: number }>;
+
+function inputKind(i: MiniSimInput) {
+  return i.kind ?? 'currency';
+}
+
+function fallbackMax(i: MiniSimInput) {
+  const kind = inputKind(i);
+  if (kind === 'currency') return Math.max(i.defaultValue * 4, 100_000);
+  if (kind === 'percent') return 1;
+  return 40;
+}
+
+function fallbackStep(i: MiniSimInput) {
+  const kind = inputKind(i);
+  if (kind === 'percent') return 0.005;
+  if (kind === 'years' || kind === 'months' || kind === 'count') return 1;
+  return 100;
+}
+
+function formatInputValue(kind: MiniSimInputKind, value: number) {
+  if (kind === 'currency') return formatGBP(value);
+  if (kind === 'percent') return `${(value * 100).toFixed(1)}%`;
+  if (kind === 'years') return `${Math.round(value)} yr${Math.round(value) === 1 ? '' : 's'}`;
+  if (kind === 'months') return `${Math.round(value)} mo${Math.round(value) === 1 ? '' : 's'}`;
+  return Math.round(value).toString();
+}
+
+function numberFieldValue(kind: MiniSimInputKind, value: number) {
+  return kind === 'percent' ? Number((value * 100).toFixed(2)) : Math.round(value);
+}
+
+function valueFromNumberField(kind: MiniSimInputKind, value: number) {
+  return kind === 'percent' ? value / 100 : value;
+}
+
 /**
  * Lightweight inline simulator for strategies that don't naturally map to the
  * personal-profile fields. Same visual feel as ShowWithMyNumbers but local-
@@ -43,19 +79,29 @@ export function MiniSim({
   /** Optional small-print under the result. */
   footer?: ReactNode;
 }) {
-  const initial = useMemo(() => {
-    const obj: Record<string, number> = {};
-    for (const i of inputs) obj[i.key] = i.defaultValue;
-    return obj;
+  const seeded = useMemo(() => {
+    const values: Record<string, number> = {};
+    const bounds: InputBounds = {};
+    for (const i of inputs) {
+      const min = i.min ?? 0;
+      const max = i.max ?? fallbackMax(i);
+      const step = i.step ?? fallbackStep(i);
+      bounds[i.key] = { min, max, step };
+      values[i.key] = clamp(i.defaultValue, min, max);
+    }
+    return { values, bounds };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [open, setOpen] = useState(defaultOpen);
-  const [working, setWorking] = useState<Record<string, number>>(initial);
+  const [working, setWorking] = useState<Record<string, number>>(seeded.values);
 
   const setOne = (k: string, v: number) =>
-    setWorking((p) => ({ ...p, [k]: v }));
+    setWorking((p) => {
+      const b = seeded.bounds[k];
+      return { ...p, [k]: clamp(isFinite(v) ? v : b.min, b.min, b.max) };
+    });
 
-  const reset = () => setWorking(initial);
+  const reset = () => setWorking(seeded.values);
 
   if (!open) {
     return (
@@ -127,39 +173,20 @@ export function MiniSim({
           </div>
           <div className="grid gap-3">
             {inputs.map((i) => {
-              const kind = i.kind ?? 'currency';
-              const display =
-                kind === 'currency'
-                  ? `£${Math.round(working[i.key]).toLocaleString('en-GB')}`
-                  : kind === 'percent'
-                    ? `${(working[i.key] * 100).toFixed(1)}%`
-                    : kind === 'years'
-                      ? `${working[i.key]} yr${working[i.key] === 1 ? '' : 's'}`
-                      : kind === 'months'
-                        ? `${working[i.key]} mo${working[i.key] === 1 ? '' : 's'}`
-                        : Math.round(working[i.key]).toString();
-              const step =
-                i.step ??
-                (kind === 'percent'
-                  ? 0.005
-                  : kind === 'years' || kind === 'months' || kind === 'count'
-                    ? 1
-                    : 100);
-              const min = i.min ?? 0;
-              const max =
-                i.max ??
-                (kind === 'currency'
-                  ? Math.max(working[i.key] * 4, 100_000)
-                  : kind === 'percent'
-                    ? 1
-                    : 40);
+              const kind = inputKind(i);
+              const display = formatInputValue(kind, working[i.key]);
+              const { min, max, step } = seeded.bounds[i.key];
+              const fieldMin = kind === 'percent' ? min * 100 : min;
+              const fieldMax = kind === 'percent' ? max * 100 : max;
+              const fieldStep = kind === 'percent' ? step * 100 : step;
+              const labelId = `mini-sim-${i.key}-label`;
               return (
-                <label
+                <div
                   key={i.key}
                   className="block rounded-lg border border-ink-200 bg-ink-50/70 p-3 text-sm dark:border-ink-800 dark:bg-ink-950/40"
                 >
                   <span className="mb-1 flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-ink-700 dark:text-ink-200">
+                    <span id={labelId} className="font-medium text-ink-700 dark:text-ink-200">
                       {i.label}
                     </span>
                     <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
@@ -169,21 +196,51 @@ export function MiniSim({
                   <input
                     type="range"
                     className="w-full accent-accent-600"
+                    aria-labelledby={labelId}
                     value={working[i.key]}
                     min={min}
                     max={max}
                     step={step}
                     onChange={(e) => {
                       const v = Number(e.target.value);
-                      setOne(i.key, isFinite(v) ? v : 0);
+                      setOne(i.key, v);
                     }}
                   />
+                  <div className="mt-2 flex items-center gap-2">
+                    {kind === 'currency' && (
+                      <span className="text-xs font-medium text-ink-400">£</span>
+                    )}
+                    <input
+                      type="number"
+                      className="input h-8 px-2 py-1 font-mono text-xs"
+                      aria-label={`${i.label} exact value`}
+                      value={numberFieldValue(kind, working[i.key])}
+                      min={fieldMin}
+                      max={fieldMax}
+                      step={fieldStep}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onChange={(e) =>
+                        setOne(i.key, valueFromNumberField(kind, Number(e.target.value)))
+                      }
+                    />
+                    {kind !== 'currency' && (
+                      <span className="text-xs font-medium text-ink-400">
+                        {kind === 'percent'
+                          ? '%'
+                          : kind === 'years'
+                            ? 'yrs'
+                            : kind === 'months'
+                              ? 'mo'
+                              : 'count'}
+                      </span>
+                    )}
+                  </div>
                   {i.hint && (
                     <span className="mt-1 block text-[11px] leading-relaxed text-ink-500 dark:text-ink-400">
                       {i.hint}
                     </span>
                   )}
-                </label>
+                </div>
               );
             })}
           </div>

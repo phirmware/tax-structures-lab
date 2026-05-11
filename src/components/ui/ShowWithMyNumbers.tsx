@@ -5,6 +5,7 @@ import {
   PROFILE_FIELDS,
   type PersonalProfile,
 } from '../../lib/storage';
+import { clamp, formatGBP } from '../../lib/format';
 
 type ProfileKey = keyof PersonalProfile;
 
@@ -26,6 +27,15 @@ export interface InputSpec {
 interface RenderArgs {
   /** Resolved current values (profile if present, else defaults). */
   values: Record<ProfileKey, number>;
+}
+
+type InputBounds = Record<ProfileKey, { min: number; max: number; step: number }>;
+
+function formatInputValue(key: ProfileKey, value: number) {
+  if (key === 'yearsHorizon') {
+    return `${Math.round(value)} yr${Math.round(value) === 1 ? '' : 's'}`;
+  }
+  return formatGBP(value);
 }
 
 /**
@@ -52,30 +62,42 @@ export function ShowWithMyNumbers({
   const profile = state.personalProfile;
 
   // Local working values: start from profile (if set) else the spec default.
-  const initial = useMemo(() => {
-    const obj = {} as Record<ProfileKey, number>;
+  const seeded = useMemo(() => {
+    const values = {} as Record<ProfileKey, number>;
+    const bounds = {} as InputBounds;
     for (const i of inputs) {
       const fromProfile = profile[i.key];
-      obj[i.key] =
+      const rawValue =
         typeof fromProfile === 'number' && isFinite(fromProfile)
           ? fromProfile
           : i.defaultValue;
+      const isYears = i.key === 'yearsHorizon';
+      const min = i.min ?? 0;
+      const max =
+        i.max ??
+        (isYears ? 40 : Math.max(rawValue * 4, i.defaultValue * 4, 100_000));
+      const step = i.step ?? (isYears ? 1 : 100);
+      bounds[i.key] = { min, max, step };
+      values[i.key] = clamp(rawValue, min, max);
     }
-    return obj;
+    return { values, bounds };
     // We intentionally only seed once when the panel mounts — subsequent
     // edits in this panel are local until the user clicks "Save".
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [open, setOpen] = useState(defaultOpen);
-  const [working, setWorking] = useState<Record<ProfileKey, number>>(initial);
+  const [working, setWorking] = useState<Record<ProfileKey, number>>(seeded.values);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const setOne = (k: ProfileKey, v: number) =>
-    setWorking((p) => ({ ...p, [k]: v }));
+    setWorking((p) => {
+      const b = seeded.bounds[k];
+      return { ...p, [k]: clamp(isFinite(v) ? v : b.min, b.min, b.max) };
+    });
 
   const reset = () => {
-    setWorking(initial);
+    setWorking(seeded.values);
     setSavedAt(null);
   };
 
@@ -171,44 +193,59 @@ export function ShowWithMyNumbers({
               const profileLabel = PROFILE_FIELDS.find((f) => f.key === i.key)?.label;
               const label = i.label ?? profileLabel ?? String(i.key);
               const isYears = i.key === 'yearsHorizon';
-              const min = i.min ?? 0;
-              const max =
-                i.max ??
-                (isYears ? 40 : Math.max(working[i.key] * 4, 100_000));
-              const step = i.step ?? (isYears ? 1 : 100);
+              const { min, max, step } = seeded.bounds[i.key];
+              const labelId = `show-model-${i.key}-label`;
               return (
-                <label
+                <div
                   key={i.key}
                   className="block rounded-lg border border-ink-200 bg-ink-50/70 p-3 text-sm dark:border-ink-800 dark:bg-ink-950/40"
                 >
                   <span className="mb-1 flex items-baseline justify-between gap-2">
-                    <span className="font-medium text-ink-700 dark:text-ink-200">
+                    <span id={labelId} className="font-medium text-ink-700 dark:text-ink-200">
                       {label}
                     </span>
                     <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
-                      {isYears
-                        ? `${working[i.key]} yr${working[i.key] === 1 ? '' : 's'}`
-                        : `£${Math.round(working[i.key]).toLocaleString('en-GB')}`}
+                      {formatInputValue(i.key, working[i.key])}
                     </span>
                   </span>
                   <input
                     type="range"
                     className="w-full accent-accent-600"
+                    aria-labelledby={labelId}
                     value={working[i.key]}
                     min={min}
                     max={max}
                     step={step}
                     onChange={(e) => {
                       const v = Number(e.target.value);
-                      setOne(i.key, isFinite(v) ? v : 0);
+                      setOne(i.key, v);
                     }}
                   />
+                  <div className="mt-2 flex items-center gap-2">
+                    {!isYears && (
+                      <span className="text-xs font-medium text-ink-400">£</span>
+                    )}
+                    <input
+                      type="number"
+                      className="input h-8 px-2 py-1 font-mono text-xs"
+                      aria-label={`${label} exact value`}
+                      value={Math.round(working[i.key])}
+                      min={min}
+                      max={max}
+                      step={step}
+                      onFocus={(e) => e.currentTarget.select()}
+                      onChange={(e) => setOne(i.key, Number(e.target.value))}
+                    />
+                    {isYears && (
+                      <span className="text-xs font-medium text-ink-400">yrs</span>
+                    )}
+                  </div>
                   {i.hint && (
                     <span className="mt-1 block text-[11px] leading-relaxed text-ink-500 dark:text-ink-400">
                       {i.hint}
                     </span>
                   )}
-                </label>
+                </div>
               );
             })}
           </div>

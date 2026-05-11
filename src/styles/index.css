@@ -87,10 +87,12 @@ body {
 
 .flow-line {
   fill: none;
-  stroke-width: 2;
   stroke-linecap: round;
-  stroke-dasharray: 6 6;
-  animation: flow 2.5s linear infinite;
+  stroke-linejoin: round;
+  stroke-dasharray: 5 9;
+  animation: flow 3s linear infinite;
+  filter: drop-shadow(0 2px 3px rgb(17 20 29 / 0.06));
+  vector-effect: non-scaling-stroke;
 }
 .flow-line-tax {
   stroke: #dc2626;
@@ -105,9 +107,39 @@ body {
   stroke: #67738c;
 }
 
+.cash-flow-scroll {
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
+  user-select: none;
+  width: 100%;
+}
+
+.cash-flow-scroll:active {
+  cursor: grabbing;
+}
+
+.cash-flow-svg {
+  max-width: none;
+  pointer-events: none;
+  width: 920px;
+}
+
+@media (min-width: 768px) {
+  .cash-flow-svg {
+    min-width: 900px;
+    width: 100%;
+  }
+}
+
 @keyframes flow {
   0% {
-    stroke-dashoffset: 24;
+    stroke-dashoffset: 28;
   }
   100% {
     stroke-dashoffset: 0;
