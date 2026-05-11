@@ -44,7 +44,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-ink-50 dark:bg-ink-950">
       {/* Desktop sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden md:sticky md:top-0 md:h-screen md:self-start md:block">
         <Sidebar />
       </div>
 
