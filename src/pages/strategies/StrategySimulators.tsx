@@ -10,7 +10,10 @@ import {
 } from '../../components/ui/SimCharts';
 import {
   computeSalaryAndDividends,
+  corporationTax,
+  ir35Result,
   ltdResult,
+  maxDirectorSalary,
 } from '../../lib/tax';
 import {
   BADR_LIFETIME_LIMIT,
@@ -21,6 +24,7 @@ import {
   CT_SMALL_RATE,
   DIV_HIGHER,
   EIS_INCOME_TAX_RELIEF,
+  EIS_INVESTMENT_LIMIT,
   IT_BASIC,
   IT_HIGHER,
   IHT_NIL_RATE_BAND,
@@ -28,6 +32,7 @@ import {
   ISA_ALLOWANCE,
   PERSONAL_ALLOWANCE,
   SEIS_INCOME_TAX_RELIEF,
+  SEIS_INVESTMENT_LIMIT,
   VAT_STANDARD_RATE,
 } from '../../lib/constants';
 import { formatGBP, formatPct } from '../../lib/format';
@@ -111,11 +116,15 @@ function SalaryVsDividendsSim() {
         const r = values.annualRevenue ?? 0;
         const c = values.annualCosts ?? 0;
         const need = values.personalIncomeNeed ?? 0;
+        const salaryOnlyGross = Math.min(
+          bisectSalaryForNet(need),
+          maxDirectorSalary(r, c),
+        );
         const salaryOnly = ltdResult({
           revenue: r,
           costs: c,
-          ownerSalary: bisectSalaryForNet(need),
-          desiredCash: need,
+          ownerSalary: salaryOnlyGross,
+          desiredCash: 0,
         });
         const balanced = ltdResult({
           revenue: r,
@@ -207,7 +216,7 @@ function PensionExtractionSim() {
               />
             </div>
             <p className="text-[11px] text-ink-500 dark:text-ink-400">
-              Assumptions: 7% gross return, 25% main-rate CT, 33.75% higher-rate
+              Assumptions: 7% gross return, 25% main-rate CT, {formatPct(DIV_HIGHER)} higher-rate
               dividend, ISA wrapper for personal route, pension drawn 25%
               tax-free + 75% at 40%. Real figures vary.
             </p>
@@ -432,13 +441,15 @@ function EisSeisSim() {
         const itOnIncome =
           computeSalaryAndDividends(values.pensionContribution ?? 0, 0)
             .itOnSalary;
-        const eisRelief = Math.min(inv * EIS_INCOME_TAX_RELIEF, itOnIncome);
-        const seisRelief = Math.min(inv * SEIS_INCOME_TAX_RELIEF, itOnIncome);
+        const eisQualifying = Math.min(inv, EIS_INVESTMENT_LIMIT);
+        const seisQualifying = Math.min(inv, SEIS_INVESTMENT_LIMIT);
+        const eisRelief = Math.min(eisQualifying * EIS_INCOME_TAX_RELIEF, itOnIncome);
+        const seisRelief = Math.min(seisQualifying * SEIS_INCOME_TAX_RELIEF, itOnIncome);
         // Loss relief if investment goes to zero, after IT relief used.
-        const eisAtRiskCapital = inv - eisRelief;
+        const eisAtRiskCapital = eisQualifying - eisRelief;
         const eisLossReliefAtHigherRate = eisAtRiskCapital * IT_HIGHER;
         const eisNetCostIfTotalLoss = inv - eisRelief - eisLossReliefAtHigherRate;
-        const seisAtRiskCapital = inv - seisRelief;
+        const seisAtRiskCapital = seisQualifying - seisRelief;
         const seisLossReliefAtHigherRate = seisAtRiskCapital * IT_HIGHER;
         const seisNetCostIfTotalLoss =
           inv - seisRelief - seisLossReliefAtHigherRate;
@@ -634,7 +645,7 @@ function DirectorsLoanSim() {
         const bikTax = bikValue * 0.4; // higher-rate, illustrative
         // s455 if not repaid within 9m1d.
         const s455 =
-          monthsAfterYearEnd > 9 ? loan * 0.3375 : 0;
+          monthsAfterYearEnd > 9 ? loan * DIV_HIGHER : 0;
         const total = bikTax + s455;
         return (
           <div className="space-y-3">
@@ -756,7 +767,7 @@ function PensionsLongGameSim() {
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
               Pension wins more clearly at longer horizons and when the
               retirement marginal rate is below your peak-earning rate.
-              Assumes 7% gross growth, 25% CT, 33.75% higher-rate dividend.
+              Assumes 7% gross growth, 25% CT, {formatPct(DIV_HIGHER)} higher-rate dividend.
             </p>
           </div>
         );
@@ -870,7 +881,7 @@ function VctSim() {
         const yieldRate = values.yieldRate;
         const itRelief = inv * 0.30;
         const dividendsOver5y = inv * yieldRate * 5;
-        // Compare to a higher-rate dividend taxed at 33.75%.
+        // Compare to a higher-rate taxable dividend.
         const dividendTaxIfNotVct = dividendsOver5y * DIV_HIGHER;
         const totalBenefit = itRelief + dividendTaxIfNotVct;
         return (
@@ -1010,8 +1021,9 @@ function ReinvestmentReliefSim() {
       render={({ values }) => {
         const gain = values.gain;
         const years = Math.max(3, Math.round(values.years));
-        const cgtNow = gain * CGT_HIGHER;
-        const cgtDeferred = gain * CGT_HIGHER; // same nominal, paid later
+        const taxableGain = Math.max(0, gain - CGT_ANNUAL_EXEMPTION);
+        const cgtNow = taxableGain * CGT_HIGHER;
+        const cgtDeferred = taxableGain * CGT_HIGHER; // same nominal, paid later
         const realDiscount = 0.04;
         const cgtDeferredPv =
           cgtDeferred / Math.pow(1 + realDiscount, years);
@@ -1070,34 +1082,36 @@ function BadrQualificationSim() {
       ]}
       render={({ values }) => {
         const gain = values.gain;
-        const cgtFull = (gain - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const cgtFull = Math.max(0, gain - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
         const badrSlice = Math.min(gain, BADR_LIFETIME_LIMIT);
         const aboveSlice = Math.max(0, gain - BADR_LIFETIME_LIMIT);
+        const aboveTaxable = Math.max(0, aboveSlice - CGT_ANNUAL_EXEMPTION);
+        const allowanceLeft = Math.max(0, CGT_ANNUAL_EXEMPTION - aboveSlice);
+        const badrTaxable = Math.max(0, badrSlice - allowanceLeft);
         const cgtBadr =
-          badrSlice * BADR_RATE + (aboveSlice - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
-        const cgtBadrSafe = Math.max(0, cgtBadr);
+          badrTaxable * BADR_RATE + aboveTaxable * CGT_HIGHER;
         return (
           <div className="space-y-3">
             <ComparisonBars
               bars={[
                 { label: 'No BADR (24%)', value: cgtFull, color: SIM_COLORS.bad },
-                { label: 'With BADR (14% on £1m)', value: cgtBadrSafe, color: SIM_COLORS.good },
+                { label: `With BADR (${formatPct(BADR_RATE)} on £1m)`, value: cgtBadr, color: SIM_COLORS.good },
               ]}
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <SimBox label="CGT @ standard 24%" value={cgtFull} tone="bad" />
-              <SimBox label="CGT with BADR" value={cgtBadrSafe} tone="ok" />
+              <SimBox label="CGT with BADR" value={cgtBadr} tone="ok" />
             </div>
             <SimBox
               label="BADR saving"
-              value={cgtFull - cgtBadrSafe}
+              value={cgtFull - cgtBadr}
               tone="ok"
               full
             />
           </div>
         );
       }}
-      footer="BADR caps at £1m of lifetime gain. Anything above is at the standard CGT rate. Qualifying continuously for 2 years before sale is non-negotiable."
+      footer={`BADR caps at £1m of lifetime gain. Anything above is at the standard CGT rate. Qualifying continuously for 2 years before sale is non-negotiable. Current modelled BADR rate: ${formatPct(BADR_RATE)}.`}
     />
   );
 }
@@ -1118,9 +1132,13 @@ function EotSaleSim() {
       ]}
       render={({ values }) => {
         const v = values.saleValue;
-        const tradeBadr = Math.min(v, BADR_LIFETIME_LIMIT) * BADR_RATE;
-        const tradeAbove =
-          Math.max(0, v - BADR_LIFETIME_LIMIT - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const tradeBadrSlice = Math.min(v, BADR_LIFETIME_LIMIT);
+        const tradeAboveSlice = Math.max(0, v - BADR_LIFETIME_LIMIT);
+        const tradeAboveTaxable = Math.max(0, tradeAboveSlice - CGT_ANNUAL_EXEMPTION);
+        const allowanceLeft = Math.max(0, CGT_ANNUAL_EXEMPTION - tradeAboveSlice);
+        const tradeBadrTaxable = Math.max(0, tradeBadrSlice - allowanceLeft);
+        const tradeBadr = tradeBadrTaxable * BADR_RATE;
+        const tradeAbove = tradeAboveTaxable * CGT_HIGHER;
         const tradeTotal = tradeBadr + tradeAbove;
         const tradeNet = v - tradeTotal;
         const eotNet = v;
@@ -1177,7 +1195,7 @@ function EarnOutsSim() {
           <div className="space-y-3">
             <ComparisonBars
               bars={[
-                { label: 'Capital (BADR 14%)', value: capitalTax, color: SIM_COLORS.good },
+                { label: `Capital (BADR ${formatPct(BADR_RATE)})`, value: capitalTax, color: SIM_COLORS.good },
                 { label: 'Employment income (47%)', value: incomeTax, color: SIM_COLORS.bad },
               ]}
             />
@@ -1224,7 +1242,7 @@ function EquityVsCashSim() {
             <ComparisonBars
               bars={[
                 { label: 'Cash bonus (47%)', value: cashNet, color: SIM_COLORS.warn },
-                { label: 'BADR equity (14%)', value: equityNet, color: SIM_COLORS.good },
+                { label: `BADR equity (${formatPct(BADR_RATE)})`, value: equityNet, color: SIM_COLORS.good },
               ]}
             />
             <div className="grid gap-3 sm:grid-cols-2">
@@ -1261,7 +1279,7 @@ function CapitalVsIncomeSim() {
       ]}
       render={({ values }) => {
         const g = values.gain;
-        const capital = (g - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
+        const capital = Math.max(0, g - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
         const income = g * 0.47;
         return (
           <div className="space-y-3">
@@ -1329,15 +1347,9 @@ function Ir35Sim() {
           desiredCash: r,
           pensionContribution: pension,
         });
-        const insideSalary = Math.max(0, r - c - pension);
-        const insidePersonal = computeSalaryAndDividends(insideSalary, 0);
-        const insideEmployerNi =
-          Math.max(0, insideSalary - 5_000) * 0.15;
-        const insideTotalTax =
-          insidePersonal.itOnSalary +
-          insidePersonal.employeeNI +
-          insideEmployerNi;
-        const insideNet = insidePersonal.netSalary;
+        const inside = ir35Result(r, c + pension);
+        const insideTotalTax = inside.totalTax;
+        const insideNet = inside.netToContractor;
         const advantage = outside.ownerTotalNet - insideNet;
         return (
           <div className="space-y-3">
@@ -1408,10 +1420,10 @@ function GroupReliefSim() {
         const loss = values.lossSubLoss;
         const profit = values.profitSubProfit;
         // Without group relief: Sub B pays CT on full profit; Sub A carries loss forward.
-        const ctSubBStandalone = profit * CT_MAIN_RATE;
+        const ctSubBStandalone = corporationTax(profit).total;
         // With group relief: loss surrendered against Sub B's profit.
         const offset = Math.min(loss, profit);
-        const ctSubBPostRelief = (profit - offset) * CT_MAIN_RATE;
+        const ctSubBPostRelief = corporationTax(profit - offset).total;
         const ctSaved = ctSubBStandalone - ctSubBPostRelief;
         return (
           <div className="space-y-3">
@@ -1470,9 +1482,9 @@ function InterCoChargesSim() {
         const recharge = Math.min(values.recharge, subProfit);
         // Holdco assumed loss-making prior to recharge for simplicity (so the
         // recharge offsets its costs and is taxed within its small-profits band).
-        const ctSubBefore = subProfit * CT_MAIN_RATE;
-        const ctSubAfter = (subProfit - recharge) * CT_MAIN_RATE;
-        const ctHoldcoOnRecharge = recharge * CT_SMALL_RATE;
+        const ctSubBefore = corporationTax(subProfit).total;
+        const ctSubAfter = corporationTax(subProfit - recharge).total;
+        const ctHoldcoOnRecharge = corporationTax(recharge).total;
         const groupBefore = ctSubBefore;
         const groupAfter = ctSubAfter + ctHoldcoOnRecharge;
         return (
@@ -1662,15 +1674,8 @@ function CryptoMythSim() {
       render={({ values }) => {
         const atReceipt = values.gbpAtReceipt;
         const atSale = values.gbpAtSale;
-        // Income tax + NI at higher rate as illustrative.
-        const incomeTax =
-          (atReceipt - PERSONAL_ALLOWANCE > 0
-            ? Math.min(atReceipt - PERSONAL_ALLOWANCE, 37_700) * IT_BASIC +
-              Math.max(0, atReceipt - 50_270) * IT_HIGHER
-            : 0) +
-          (atReceipt > NI_PT()
-            ? niEstimate(atReceipt)
-            : 0);
+        const receiptTax = computeSalaryAndDividends(atReceipt, 0);
+        const incomeTax = receiptTax.itOnSalary + receiptTax.employeeNI;
         const cgt = Math.max(0, atSale - atReceipt - CGT_ANNUAL_EXEMPTION) * CGT_HIGHER;
         const cashOnlyIncomeTax = incomeTax; // identical IT/NI on a cash salary
         return (
@@ -1709,16 +1714,6 @@ function CryptoMythSim() {
       }}
     />
   );
-}
-
-// Small helpers used only by CryptoMythSim.
-function NI_PT() {
-  return PERSONAL_ALLOWANCE;
-}
-function niEstimate(salary: number) {
-  const inMain = Math.max(0, Math.min(salary, 50_270) - PERSONAL_ALLOWANCE);
-  const inUpper = Math.max(0, salary - 50_270);
-  return inMain * 0.08 + inUpper * 0.02;
 }
 
 // ------------------- helpers --------------------
@@ -1770,4 +1765,3 @@ function Box({
     </div>
   );
 }
-

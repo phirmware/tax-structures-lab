@@ -228,7 +228,7 @@ function LtdBody() {
         and compound there. Profit you do need can be taken via the cheapest
         extraction route (typically PA-salary + dividends + a pension
         contribution). And on eventual sale, the gain can attract{' '}
-        <G term="badr">BADR</G> at 14% — far below any income-tax route.
+        <G term="badr">BADR</G> at 18% — far below any income-tax route.
       </p>
 
       <h3>What it costs you</h3>
@@ -263,7 +263,7 @@ function LtdBody() {
           amount of employer NI.
         </li>
         <li>
-          Dividends to top up to your living needs — taxed at 8.75% / 33.75%
+          Dividends to top up to your living needs — taxed at 10.75% / 35.75%
           / 39.35% with no NI.
         </li>
         <li>

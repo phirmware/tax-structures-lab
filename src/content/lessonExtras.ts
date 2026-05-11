@@ -59,7 +59,7 @@ export const LESSON_EXTRAS: Record<string, LessonExtras> = {
 
   'foundations/1-4': {
     summary:
-      "The same £100,000 is taxed very differently depending on whether the law calls it salary (up to ~47% in the UK), dividends, or a capital gain (as low as 14% with BADR). The label the system attaches to your money matters as much as the amount — sometimes more.",
+      "The same £100,000 is taxed very differently depending on whether the law calls it salary (up to ~47% in the UK), dividends, or a capital gain (as low as 18% with BADR). The label the system attaches to your money matters as much as the amount — sometimes more.",
     mistakes: [
       {
         id: 'all-salary',
@@ -199,7 +199,7 @@ export const LESSON_EXTRAS: Record<string, LessonExtras> = {
   },
   'uk/dividends': {
     summary:
-      "Dividends are how Ltd shareholders get paid out of post-tax company profit. They use lower rates than salary (8.75%/33.75%/39.35%) and skip National Insurance entirely. The catch: the company already paid corporation tax on the profit before declaring the dividend, so you have to compare the round-trip total to make a fair call.",
+      "Dividends are how Ltd shareholders get paid out of post-tax company profit. They use lower rates than salary (10.75%/35.75%/39.35%) and skip National Insurance entirely. The catch: the company already paid corporation tax on the profit before declaring the dividend, so you have to compare the round-trip total to make a fair call.",
   },
   'uk/salary-vs-dividend': {
     summary:
@@ -215,13 +215,13 @@ export const LESSON_EXTRAS: Record<string, LessonExtras> = {
   },
   'uk/directors-loan': {
     summary:
-      "Money you pull from your company that isn't salary, dividend, expense reimbursement, or pension contribution sits as a loan from the company to you. If you don't repay it within nine months and one day of year-end, the company gets hit with a 33.75% extra corporation tax charge on the unpaid amount. Easy to forget; expensive when you do.",
+      "Money you pull from your company that isn't salary, dividend, expense reimbursement, or pension contribution sits as a loan from the company to you. If you don't repay it within nine months and one day of year-end, the company gets hit with a 35.75% extra corporation tax charge on the unpaid amount. Easy to forget; expensive when you do.",
     mistakes: [
       {
         id: 's455',
         title: 'Forgetting the £15k "I borrowed it briefly"',
         body:
-          'A director takes £15,000 from the company as a loan, planning to repay it within the year. They forget. Nine months after year-end, the unpaid loan triggers a 33.75% s455 charge — about £5,000 of tax payable by the company. The cash is recoverable later when they repay, but it sits at HMRC for years. The fix: reconcile the director\'s loan account against year-end, every year, no exceptions.',
+          'A director takes £15,000 from the company as a loan, planning to repay it within the year. They forget. Nine months after year-end, the unpaid loan triggers a 35.75% s455 charge — about £5,400 of tax payable by the company. The cash is recoverable later when they repay, but it sits at HMRC for years. The fix: reconcile the director\'s loan account against year-end, every year, no exceptions.',
       },
     ],
   },
@@ -271,13 +271,13 @@ export const LESSON_EXTRAS: Record<string, LessonExtras> = {
   },
   'uk/badr': {
     summary:
-      "BADR cuts the CGT rate to 14% on the first £1m of lifetime gains when you sell a qualifying business — a roughly 10-percentage-point saving versus the headline rate, worth £100,000 on a £1m sale. The catch: you have to genuinely qualify for two full years before the sale, and the rules are strict. Don't change share structures or behaviour close to a sale without checking BADR impact first.",
+      "BADR cuts the CGT rate to 18% on the first £1m of lifetime gains when you sell a qualifying business — a roughly 6-percentage-point saving versus the headline rate, worth £60,000 on a £1m sale. The catch: you have to genuinely qualify for two full years before the sale, and the rules are strict. Don't change share structures or behaviour close to a sale without checking BADR impact first.",
     mistakes: [
       {
         id: 'last-minute-share-class',
         title: 'Adding a share class 18 months before the sale',
         body:
-          "A founder builds a successful Ltd company over six years, then decides to sell. They start the sale process before checking BADR eligibility, and a small structural detail — a new share class introduced 18 months earlier — disqualifies them. They pay the full 24% CGT instead of 14%, costing roughly £100,000 on a £1m sale. The fix: discuss any structural change with an adviser, and plan the sale 2+ years ahead.",
+          "A founder builds a successful Ltd company over six years, then decides to sell. They start the sale process before checking BADR eligibility, and a small structural detail — a new share class introduced 18 months earlier — disqualifies them. They pay the full 24% CGT instead of 18%, costing roughly £60,000 on a £1m sale. The fix: discuss any structural change with an adviser, and plan the sale 2+ years ahead.",
       },
     ],
   },
@@ -341,7 +341,7 @@ export const LESSON_EXTRAS: Record<string, LessonExtras> = {
   },
   'scenarios/selling-business': {
     summary:
-      "Plan a business sale 2+ years ahead, not 6 months ahead. BADR (14% CGT on the first £1m of gain) requires you to qualify for the full two years before the sale — and small late-stage structural changes can disqualify you. Strip excess cash, tidy share classes, and clear any director's loans well in advance.",
+      "Plan a business sale 2+ years ahead, not 6 months ahead. BADR (18% CGT on the first £1m of gain) requires you to qualify for the full two years before the sale — and small late-stage structural changes can disqualify you. Strip excess cash, tidy share classes, and clear any director's loans well in advance.",
   },
   'scenarios/pension-extraction': {
     summary:

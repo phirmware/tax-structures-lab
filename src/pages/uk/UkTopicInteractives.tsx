@@ -2,7 +2,7 @@ import {
   ShowWithMyNumbers,
   type InputSpec,
 } from '../../components/ui/ShowWithMyNumbers';
-import { computeSalaryAndDividends, ltdResult } from '../../lib/tax';
+import { computeSalaryAndDividends, ltdResult, maxDirectorSalary } from '../../lib/tax';
 import {
   CT_MAIN_RATE,
   CT_SMALL_RATE,
@@ -118,11 +118,15 @@ function SalaryVsDividendPanel() {
         const c = values.annualCosts ?? 0;
         const need = values.personalIncomeNeed ?? 0;
         // Salary-only: pay enough salary to net `need` after tax+NI (rough — bisect)
+        const salaryOnlyGross = Math.min(
+          bisectSalaryForNet(need),
+          maxDirectorSalary(r, c),
+        );
         const salaryOnly = ltdResult({
           revenue: r,
           costs: c,
-          ownerSalary: bisectSalaryForNet(need),
-          desiredCash: need,
+          ownerSalary: salaryOnlyGross,
+          desiredCash: 0,
         });
         const balanced = ltdResult({
           revenue: r,
@@ -277,7 +281,7 @@ function PensionExtractionPanel() {
 
         // Dividend round-trip on the same £contrib of pre-CT profit:
         // company pays CT, then declares dividend, then dividend tax is paid.
-        // Use main-rate CT (25%) and higher-rate dividend (33.75%) for the
+        // Use main-rate CT (25%) and higher-rate dividend for the
         // relevant comparison case.
         const dividendNetMain = contrib * (1 - CT_MAIN_RATE) * (1 - DIV_HIGHER);
         const dividendNetSmall = contrib * (1 - CT_SMALL_RATE) * (1 - DIV_HIGHER);
@@ -300,7 +304,7 @@ function PensionExtractionPanel() {
                 tone="ok"
               />
               <Box
-                label="If extracted as dividend (25% CT + 33.75% div tax)"
+                label={`If extracted as dividend (25% CT + ${formatPct(DIV_HIGHER)} div tax)`}
                 value={formatGBP(dividendNetMain)}
                 tone="warn"
               />

@@ -86,7 +86,7 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
   badr: {
     term: 'BADR',
     short:
-      'Business Asset Disposal Relief — a reduced CGT rate (currently 14%) on up to £1m of qualifying lifetime gains when selling a business.',
+      'Business Asset Disposal Relief — a reduced CGT rate (currently 18%) on up to £1m of qualifying lifetime gains when selling a business.',
     see: '/uk/badr',
   },
   ir35: {

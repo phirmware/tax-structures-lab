@@ -202,7 +202,7 @@ export const UK_TOPICS: UkTopic[] = [
           </li>
           <li>
             Take the rest as dividends. They use up the £500 dividend allowance, then get taxed
-            at 8.75% / 33.75% / 39.35% depending on band.
+            at 10.75% / 35.75% / 39.35% depending on band.
           </li>
         </ol>
         <h3>Why this generally wins</h3>
@@ -234,7 +234,7 @@ export const UK_TOPICS: UkTopic[] = [
     id: 'directors-loan',
     title: "Director's loans",
     pattern: 'Timing',
-    summary: `Money you owe the company (or vice versa). Trap: s455 corporation tax of ${formatPct(0.3375)} if not repaid within 9 months of year-end.`,
+    summary: `Money you owe the company (or vice versa). Trap: s455 corporation tax of ${formatPct(DIV_HIGHER)} if not repaid within 9 months of year-end.`,
     body: () => (
       <>
         <h2>What it is</h2>
@@ -246,7 +246,7 @@ export const UK_TOPICS: UkTopic[] = [
         <h3>The s455 trap</h3>
         <p>
           If your DLA is overdrawn (you owe the company) at year end and isn't repaid within{' '}
-          <strong>nine months and one day</strong>, the company pays a 33.75% extra corporation
+          <strong>nine months and one day</strong>, the company pays a 35.75% extra corporation
           tax on the balance. You can reclaim it later when you repay, but the cash is gone in
           the meantime.
         </p>
@@ -432,7 +432,7 @@ export const UK_TOPICS: UkTopic[] = [
         <ul>
           <li>Pension: 0% in (after CT deduction), tax-free growth, partly tax-free out.</li>
           <li>
-            Dividend route: 25% CT, then 33.75% dividend tax, then growth taxed at CGT or
+            Dividend route: 25% CT, then 35.75% dividend tax, then growth taxed at CGT or
             income.
           </li>
         </ul>
@@ -484,7 +484,7 @@ export const UK_TOPICS: UkTopic[] = [
         <h3>Key reliefs</h3>
         <ul>
           <li>
-            <G term="badr">BADR</G> — qualifying business sales, 14% on first £1m of lifetime
+            <G term="badr">BADR</G> — qualifying business sales, 18% on first £1m of lifetime
             gain.
           </li>
           <li>
@@ -506,14 +506,15 @@ export const UK_TOPICS: UkTopic[] = [
     id: 'badr',
     title: 'Business Asset Disposal Relief',
     pattern: 'Incentive',
-    summary: '14% CGT on the first £1m of qualifying lifetime gains when selling a business (post-Apr-2025 rate).',
+    summary: '18% CGT on the first £1m of qualifying lifetime gains when selling a business (post-Apr-2026 rate).',
     body: () => (
       <>
         <h2>What it is</h2>
         <p>
           BADR (formerly Entrepreneurs' Relief) reduces the CGT rate on qualifying business
-          sales. The lifetime cap is £1,000,000 of gain, taxed at 14% (post-Apr-2025; was 10%
-          before). Anything beyond that is taxed at the standard CGT rate.
+          sales. The lifetime cap is £1,000,000 of gain, taxed at 18% (post-Apr-2026;
+          14% in 2025/26; 10% before April 2025). Anything beyond that is taxed at
+          the standard CGT rate.
         </p>
         <h3>Eligibility (broad strokes)</h3>
         <ul>
@@ -525,8 +526,8 @@ export const UK_TOPICS: UkTopic[] = [
         <h3>Why it matters for the structure decision</h3>
         <p>
           BADR is the single biggest reason for the retention pattern at scale. Money you keep
-          inside the company eventually leaves either via dividend (33.75% top rate) or via
-          sale (BADR-rate 14% on the first £1m). The latter is dramatically cheaper.
+          inside the company eventually leaves either via dividend (35.75% top rate) or via
+          sale (BADR-rate 18% on the first £1m). The latter is dramatically cheaper.
         </p>
         <h3>Watch out for</h3>
         <ul>

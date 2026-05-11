@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { formatGBP } from '../../lib/format';
+import { BADR_RATE, DIV_HIGHER } from '../../lib/constants';
+import { formatGBP, formatPct } from '../../lib/format';
 
 export function LessonThree() {
   return (
@@ -73,14 +74,14 @@ const SCENARIOS = [
   {
     id: 'dividend',
     label: 'As dividend',
-    rate: 0.3375,
-    note: 'Higher-rate dividend tax 33.75% — but you also need to have already paid corporation tax to declare it.',
+    rate: DIV_HIGHER,
+    note: `Higher-rate dividend tax ${formatPct(DIV_HIGHER)} — but you also need to have already paid corporation tax to declare it.`,
     lever: 'What (classification)',
   },
   {
     id: 'cgt',
     label: 'As capital gain (BADR)',
-    rate: 0.14,
+    rate: BADR_RATE,
     note: 'BADR rate on first £1m of qualifying gain. The "what" lever pulled hardest.',
     lever: 'What + How',
   },

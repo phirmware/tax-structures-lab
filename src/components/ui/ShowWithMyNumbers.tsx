@@ -74,6 +74,11 @@ export function ShowWithMyNumbers({
   const setOne = (k: ProfileKey, v: number) =>
     setWorking((p) => ({ ...p, [k]: v }));
 
+  const reset = () => {
+    setWorking(initial);
+    setSavedAt(null);
+  };
+
   const save = () => {
     const patch: Partial<PersonalProfile> = {};
     for (const i of inputs) {
@@ -94,10 +99,24 @@ export function ShowWithMyNumbers({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="btn-secondary"
+          className="group flex w-full items-center justify-between gap-4 rounded-xl border border-ink-200 bg-white px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-accent-300 hover:shadow-md dark:border-ink-700 dark:bg-ink-900 dark:hover:border-accent-700 sm:w-auto"
         >
-          <Calculator className="h-4 w-4" />
-          {title}
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent-100 text-accent-800 dark:bg-accent-900/50 dark:text-accent-100">
+              <Calculator className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-300">
+                Interactive model
+              </span>
+              <span className="block truncate text-sm font-semibold text-ink-900 dark:text-ink-50">
+                {title}
+              </span>
+            </span>
+          </span>
+          <span className="text-xs font-medium text-ink-500 transition group-hover:text-accent-700 dark:text-ink-400 dark:group-hover:text-accent-300">
+            Open
+          </span>
         </button>
         {usingProfileFor > 0 && (
           <span className="ml-3 text-xs text-ink-500 dark:text-ink-400">
@@ -109,90 +128,115 @@ export function ShowWithMyNumbers({
   }
 
   return (
-    <div className="not-prose my-4 rounded-xl border border-accent-300/60 bg-accent-50/40 p-4 dark:border-accent-700/60 dark:bg-accent-900/20">
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-300">
-            With your numbers
+    <div className="not-prose my-5 overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm dark:border-ink-800 dark:bg-ink-900">
+      <div className="border-b border-ink-200 bg-ink-50/80 px-4 py-4 dark:border-ink-800 dark:bg-ink-950/50">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-accent-700 dark:text-accent-300">
+              Interactive model
+            </div>
+            <h4 className="text-base font-semibold text-ink-900 dark:text-ink-50">
+              {title}
+            </h4>
+            <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">
+              Edit any input to see this lesson applied to your situation. Your numbers are saved locally.
+            </p>
           </div>
-          <h4 className="text-sm font-semibold text-ink-900 dark:text-ink-50">
-            {title}
-          </h4>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="rounded-md px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-700 dark:text-ink-400 dark:hover:bg-ink-800 dark:hover:text-ink-200"
+          >
+            Hide
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-xs text-ink-500 underline hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200"
-        >
-          Hide
-        </button>
       </div>
 
-      <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">
-        Edit any input to see this lesson applied to your situation. Your numbers are saved locally.
-      </p>
+      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)]">
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+              Inputs
+            </div>
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-md px-2 py-1 text-xs text-ink-500 hover:bg-ink-100 hover:text-ink-700 dark:text-ink-400 dark:hover:bg-ink-800 dark:hover:text-ink-200"
+            >
+              Reset
+            </button>
+          </div>
+          <div className="grid gap-3">
+            {inputs.map((i) => {
+              const profileLabel = PROFILE_FIELDS.find((f) => f.key === i.key)?.label;
+              const label = i.label ?? profileLabel ?? String(i.key);
+              const isYears = i.key === 'yearsHorizon';
+              const min = i.min ?? 0;
+              const max =
+                i.max ??
+                (isYears ? 40 : Math.max(working[i.key] * 4, 100_000));
+              const step = i.step ?? (isYears ? 1 : 100);
+              return (
+                <label
+                  key={i.key}
+                  className="block rounded-lg border border-ink-200 bg-ink-50/70 p-3 text-sm dark:border-ink-800 dark:bg-ink-950/40"
+                >
+                  <span className="mb-1 flex items-baseline justify-between gap-2">
+                    <span className="font-medium text-ink-700 dark:text-ink-200">
+                      {label}
+                    </span>
+                    <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
+                      {isYears
+                        ? `${working[i.key]} yr${working[i.key] === 1 ? '' : 's'}`
+                        : `£${Math.round(working[i.key]).toLocaleString('en-GB')}`}
+                    </span>
+                  </span>
+                  <input
+                    type="range"
+                    className="w-full accent-accent-600"
+                    value={working[i.key]}
+                    min={min}
+                    max={max}
+                    step={step}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setOne(i.key, isFinite(v) ? v : 0);
+                    }}
+                  />
+                  {i.hint && (
+                    <span className="mt-1 block text-[11px] leading-relaxed text-ink-500 dark:text-ink-400">
+                      {i.hint}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {inputs.map((i) => {
-          const profileLabel = PROFILE_FIELDS.find((f) => f.key === i.key)?.label;
-          const label = i.label ?? profileLabel ?? String(i.key);
-          const isYears = i.key === 'yearsHorizon';
-          const min = i.min ?? 0;
-          const max =
-            i.max ??
-            (isYears ? 40 : Math.max(working[i.key] * 4, 100_000));
-          const step = i.step ?? (isYears ? 1 : 100);
-          return (
-            <label key={i.key} className="block text-sm">
-              <span className="mb-1 flex items-baseline justify-between gap-2">
-                <span className="font-medium text-ink-700 dark:text-ink-200">
-                  {label}
-                </span>
-                <span className="font-mono text-xs tabular-nums text-accent-700 dark:text-accent-300">
-                  {isYears
-                    ? `${working[i.key]} yr${working[i.key] === 1 ? '' : 's'}`
-                    : `£${Math.round(working[i.key]).toLocaleString('en-GB')}`}
-                </span>
-              </span>
-              <input
-                type="range"
-                className="w-full accent-accent-600"
-                value={working[i.key]}
-                min={min}
-                max={max}
-                step={step}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setOne(i.key, isFinite(v) ? v : 0);
-                }}
-              />
-              {i.hint && (
-                <span className="mt-1 block text-[11px] text-ink-500 dark:text-ink-400">
-                  {i.hint}
-                </span>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={save} className="btn-primary">
+              {savedAt ? (
+                <>
+                  <Check className="h-4 w-4" /> Saved
+                </>
+              ) : (
+                'Save these numbers'
               )}
-            </label>
-          );
-        })}
-      </div>
+            </button>
+            <span className="text-[11px] text-ink-500 dark:text-ink-400">
+              Saved values pre-populate this panel on every other lesson.
+            </span>
+          </div>
+        </div>
 
-      <div className="mt-4 rounded-lg border border-ink-200 bg-white p-4 text-sm dark:border-ink-700 dark:bg-ink-900">
-        {render({ values: working })}
-      </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={save} className="btn-primary">
-          {savedAt ? (
-            <>
-              <Check className="h-4 w-4" /> Saved
-            </>
-          ) : (
-            'Save these numbers'
-          )}
-        </button>
-        <span className="text-[11px] text-ink-500 dark:text-ink-400">
-          Saved values pre-populate this panel on every other lesson.
-        </span>
+        <div>
+          <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500 dark:text-ink-400">
+            Result
+          </div>
+          <div className="rounded-lg border border-ink-200 bg-white p-4 text-sm shadow-inner dark:border-ink-700 dark:bg-ink-950/30">
+            {render({ values: working })}
+          </div>
+        </div>
       </div>
     </div>
   );

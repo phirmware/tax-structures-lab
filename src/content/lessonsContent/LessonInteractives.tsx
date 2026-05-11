@@ -242,7 +242,7 @@ function RetentionPanel() {
               All three pots assume 7% gross return. Inside the Ltd, investment
               returns face corporation tax (modelled at the 19% small-profits
               rate). The two personal routes start with less because extracting
-              the surplus costs 33.75% higher-rate dividend tax — an ISA
+              the surplus costs {formatPct(DIV_HIGHER)} higher-rate dividend tax — an ISA
               wrapper then grows tax-free, a GIA pays 24% on realised gains.
               Eventual extraction tax on the inside pot (dividend, BADR on
               sale) isn't modelled; see lesson 1.9 and the Multi-year Lab.
@@ -395,7 +395,7 @@ function PensionPanel() {
 
         // --- Dividend route: company pays CT, you take a dividend, you pay
         // dividend tax, you invest the rest. Use main-rate CT (25%) and
-        // higher-rate dividend (33.75%) as the relevant case for a profitable
+        // higher-rate dividend as the relevant case for a profitable
         // founder making this trade-off. ISA-wrapped — no further tax drag.
         const ctPaid = contribution * CT_MAIN_RATE;
         const postCt = contribution - ctPaid; // dividend declared
@@ -466,7 +466,7 @@ function PensionPanel() {
             </div>
 
             <p className="text-[12px] text-ink-500 dark:text-ink-400">
-              Assumptions: 7% gross return, 25% CT main rate, 33.75% higher-rate
+              Assumptions: 7% gross return, 25% CT main rate, {formatPct(DIV_HIGHER)} higher-rate
               dividend, ISA wrapper (no growth drag), pension drawn with 25%
               tax-free lump sum and 75% at 40% marginal income tax. Real figures
               vary with your CT band, dividend band, draw strategy, and ISA

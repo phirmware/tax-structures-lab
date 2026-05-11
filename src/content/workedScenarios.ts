@@ -125,7 +125,7 @@ For tax planning:
     title: '7 · Selling your business',
     oneLiner: 'Prepare structurally years before the sale.',
     forWhom: 'Founder considering exit in 2–5 years.',
-    body: `BADR is the headline relief — 14% on the first £1m of qualifying gain. To qualify:
+    body: `BADR is the headline relief — 18% on the first £1m of qualifying gain. To qualify:
 • ≥5% ordinary shares + voting rights + entitlement to assets on a winding up.
 • Officer or employee of the company.
 • Trading company status (or holding co. of a trading group).
@@ -138,7 +138,7 @@ Pre-sale structural moves often worth doing 1–2 years before:
 • Get tax-clearance / advance assurance where useful.`,
     patternsUsed: ['capital-gains', 'relief', 'structure'],
     numbers: [
-      { label: 'BADR rate', value: '14%' },
+      { label: 'BADR rate', value: '18%' },
       { label: 'BADR lifetime cap', value: '£1,000,000 of gain' },
       { label: 'Holding period', value: '≥ 2 years' },
     ],

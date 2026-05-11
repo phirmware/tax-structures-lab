@@ -133,7 +133,7 @@ const extractionStrategies: Strategy[] = [
           </li>
           <li>
             <strong>Dividends</strong> to top up to your spending needs. They
-            use lower rates than salary (8.75% / 33.75% / 39.35%) and skip{' '}
+            use lower rates than salary (10.75% / 35.75% / 39.35%) and skip{' '}
             NI entirely. The catch is the company has already paid CT on the
             profit before declaring them.
           </li>
@@ -507,7 +507,7 @@ const extractionStrategies: Strategy[] = [
           <li>
             <strong>Section 455 CT charge.</strong> If the loan isn't repaid
             within nine months and one day of the company's year-end, the
-            company pays an extra 33.75% CT on the unpaid balance. It's
+            company pays an extra 35.75% CT on the unpaid balance. It's
             recoverable when you repay — but cash is gone in the meantime.
           </li>
           <li>
@@ -551,7 +551,7 @@ const extractionStrategies: Strategy[] = [
         id: 's455-trigger',
         title: 'Forgetting the £15k "I borrowed it briefly"',
         body:
-          'A director takes £15,000 from the company as a loan, planning to repay it within the year. They forget. Nine months after year-end, the unpaid loan triggers a 33.75% s455 charge — about £5,000 of tax payable by the company. The cash is recoverable when they later repay, but it sits at HMRC for years. The fix: reconcile the director\'s loan account against year-end, every year, no exceptions.',
+          'A director takes £15,000 from the company as a loan, planning to repay it within the year. They forget. Nine months after year-end, the unpaid loan triggers a 35.75% s455 charge — about £5,400 of tax payable by the company. The cash is recoverable when they later repay, but it sits at HMRC for years. The fix: reconcile the director\'s loan account against year-end, every year, no exceptions.',
       },
       {
         id: 'bed-and-breakfast',
@@ -758,7 +758,7 @@ const wealthStrategies: Strategy[] = [
         id: 'cash-pile-bpr',
         title: 'Letting the cash pile knock out BPR / BADR',
         body:
-          'A founder accumulates £700,000 of retained cash inside their trading Ltd over five years. On exit, BADR is challenged because excess investment-style cash has eroded the "trading" character. They pay full 24% CGT instead of 14% — costing roughly £70,000 on the first £1m of gain. A holdco-and-sweep structure put in place 3+ years earlier would have neutralised the issue.',
+          'A founder accumulates £700,000 of retained cash inside their trading Ltd over five years. On exit, BADR is challenged because excess investment-style cash has eroded the "trading" character. They pay full 24% CGT instead of 18% — costing roughly £60,000 on the first £1m of gain. A holdco-and-sweep structure put in place 3+ years earlier would have neutralised the issue.',
       },
     ],
     worthReading: [
@@ -1215,7 +1215,7 @@ const investmentStrategies: Strategy[] = [
     ],
     whenDoesNot: [
       'You aren\'t comfortable with EIS-level risk — don\'t take it just to defer CGT.',
-      'BADR was available on the original gain — using BADR (14%) is usually better than deferring at standard rates.',
+      'BADR was available on the original gain — using BADR (18%) is usually better than deferring at standard rates.',
     ],
     pros: [
       'Defers CGT, sometimes for many years.',
@@ -1247,12 +1247,12 @@ const saleStrategies: Strategy[] = [
     subsection: 'sale-exit',
     title: 'BADR qualification',
     summary:
-      '14% CGT instead of 24% on the first £1m of qualifying lifetime gain. Worth roughly £100,000 on a £1m sale. The qualifying conditions are strict and must be held for the full 2 years before the sale — small late changes can disqualify you.',
+      '18% CGT instead of 24% on the first £1m of qualifying lifetime gain. Worth roughly £60,000 on a £1m sale. The qualifying conditions are strict and must be held for the full 2 years before the sale — small late changes can disqualify you.',
     body: () => (
       <>
         <p>
           <Abbr k="badr" /> reduces the CGT rate on qualifying business sales
-          to 14% on the first £1m of lifetime gain. Anything above that is
+          to 18% on the first £1m of lifetime gain. Anything above that is
           taxed at the ordinary CGT rate (24% post-Oct-2024).
         </p>
         <p>
@@ -1286,7 +1286,7 @@ const saleStrategies: Strategy[] = [
       'You\'ve already used your £1m lifetime cap on previous sales.',
     ],
     pros: [
-      'Saves roughly £100,000 on a £1m gain (10pp rate difference).',
+      'Saves roughly £60,000 on a £1m gain (6pp rate difference).',
       'Available alongside other reliefs (EIS, etc.) where they don\'t conflict.',
     ],
     cons: [
@@ -1303,7 +1303,7 @@ const saleStrategies: Strategy[] = [
         id: 'last-minute-share-class',
         title: 'New share class 18 months before sale',
         body:
-          'A founder builds a successful Ltd over six years, then decides to sell. They start the sale process before checking BADR eligibility. A small structural detail — they introduced a growth-share class 18 months earlier — disqualifies them from BADR. They pay full 24% CGT instead of 14%, costing roughly £100,000 on a £1m sale. The fix: discuss any structural change with an adviser, and plan the sale 2+ years ahead.',
+          'A founder builds a successful Ltd over six years, then decides to sell. They start the sale process before checking BADR eligibility. A small structural detail — they introduced a growth-share class 18 months earlier — disqualifies them from BADR. They pay full 24% CGT instead of 18%, costing roughly £60,000 on a £1m sale. The fix: discuss any structural change with an adviser, and plan the sale 2+ years ahead.',
       },
     ],
     worthReading: [
@@ -1410,7 +1410,7 @@ const saleStrategies: Strategy[] = [
       </>
     ),
     principle:
-      'Classification pattern at its sharpest: the same payment can be taxed at 14% (BADR capital) or 47% (additional-rate income + NI), depending on how the contract is written and what substance the seller\'s post-sale role has.',
+      'Classification pattern at its sharpest: the same payment can be taxed at 18% (BADR capital) or 47% (additional-rate income + NI), depending on how the contract is written and what substance the seller\'s post-sale role has.',
     whenApplies: [
       'The deal includes future-contingent consideration.',
       'You expect to remain involved in the business post-sale.',
@@ -1529,7 +1529,7 @@ const classificationStrategies: Strategy[] = [
           composition of compensation matters as much as the amount. £100,000
           of salary is taxed at up to 47% combined (45% IT + 2% NI for
           additional-rate); £100,000 of growth in the value of your shares is
-          taxed at up to 24% CGT on sale, or 14% with <Abbr k="badr" />.
+          taxed at up to 24% CGT on sale, or 18% with <Abbr k="badr" />.
         </p>
         <p>
           For the founder of a private Ltd, this is automatic — your
@@ -1546,7 +1546,7 @@ const classificationStrategies: Strategy[] = [
       </>
     ),
     principle:
-      'Classification pattern. The same economic reward — sharing in business growth — can be taxed at 47% (cash bonus + NI) or 14% (BADR-eligible capital gain), depending on the legal form of the reward.',
+      'Classification pattern. The same economic reward — sharing in business growth — can be taxed at 47% (cash bonus + NI) or 18% (BADR-eligible capital gain), depending on the legal form of the reward.',
     whenApplies: [
       'You\'re a founder or early hire with meaningful upside in the business.',
       'You can afford the lower cash compensation in exchange for equity.',

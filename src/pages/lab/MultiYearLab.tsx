@@ -15,12 +15,11 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { DisclaimerBanner } from '../../components/ui/Disclaimer';
 import { Slider } from '../../components/ui/Slider';
 import {
-  capitalGainsTax,
   ltdResult,
   multiYearLtd,
   type YearInput,
 } from '../../lib/tax';
-import { BADR_RATE, BADR_LIFETIME_LIMIT } from '../../lib/constants';
+import { BADR_RATE, BADR_LIFETIME_LIMIT, CGT_ANNUAL_EXEMPTION, CGT_HIGHER } from '../../lib/constants';
 import { formatGBP, formatPct } from '../../lib/format';
 import { NotesPanel } from '../../components/ui/NotesPanel';
 
@@ -74,12 +73,17 @@ export function MultiYearLab() {
     // Exit value: simple multiple of last year's post-tax profit + retained cash.
     const exitValue =
       lastYear.postTaxProfit * inputs.exitMultiple + finalRetained;
-    // CGT on the exit. BADR for the first £1m at reduced rate; remainder at 24%.
+    // CGT on the exit. BADR for the first £1m at reduced rate; remainder at standard CGT.
+    // Use the annual exemption against the highest-rate slice first.
+    const standardSlice = inputs.useBADR
+      ? Math.max(0, exitValue - BADR_LIFETIME_LIMIT)
+      : exitValue;
+    const standardTaxable = Math.max(0, standardSlice - CGT_ANNUAL_EXEMPTION);
+    const allowanceLeft = Math.max(0, CGT_ANNUAL_EXEMPTION - standardSlice);
     const badrSlice = inputs.useBADR
-      ? Math.min(exitValue, BADR_LIFETIME_LIMIT)
+      ? Math.max(0, Math.min(exitValue, BADR_LIFETIME_LIMIT) - allowanceLeft)
       : 0;
-    const remainder = exitValue - badrSlice;
-    const cgt = capitalGainsTax(remainder, 0).total + badrSlice * BADR_RATE;
+    const cgt = standardTaxable * CGT_HIGHER + badrSlice * BADR_RATE;
 
     return {
       path,
@@ -225,7 +229,7 @@ export function MultiYearLab() {
                   onChange={(e) => update({ useBADR: e.target.checked })}
                   className="h-4 w-4 rounded border-ink-300 text-accent-600 focus:ring-accent-500"
                 />
-                Apply BADR (14% on first £1m)
+                Apply BADR ({formatPct(BADR_RATE)} on first £1m)
               </label>
             </div>
           </div>

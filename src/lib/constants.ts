@@ -2,8 +2,8 @@
 // IMPORTANT: tax law changes every budget. Treat these as illustrative.
 // Update RATES_AS_OF when you refresh them.
 
-export const RATES_AS_OF = '2025/26 tax year (illustrative)';
-export const RATES_LAST_REVIEWED = '2026-05-07';
+export const RATES_AS_OF = '2026/27 tax year (illustrative)';
+export const RATES_LAST_REVIEWED = '2026-05-11';
 
 // Income tax (rUK — Scotland differs)
 export const PERSONAL_ALLOWANCE = 12_570;
@@ -20,8 +20,8 @@ export const IT_ADDITIONAL = 0.45;
 
 // Dividend tax
 export const DIVIDEND_ALLOWANCE = 500;
-export const DIV_BASIC = 0.0875;
-export const DIV_HIGHER = 0.3375;
+export const DIV_BASIC = 0.1075;
+export const DIV_HIGHER = 0.3575;
 export const DIV_ADDITIONAL = 0.3935;
 
 // Class 1 NI (employee) — main rate cut to 8% (post-Apr 2024)
@@ -54,7 +54,7 @@ export const CGT_ANNUAL_EXEMPTION = 3_000;
 export const CGT_BASIC = 0.18; // post-Oct 2024 increase
 export const CGT_HIGHER = 0.24;
 // BADR
-export const BADR_RATE = 0.14; // post-Apr 2025 illustrative (was 10%)
+export const BADR_RATE = 0.18; // post-Apr 2026 illustrative (was 14% in 2025/26)
 export const BADR_LIFETIME_LIMIT = 1_000_000;
 
 // VAT

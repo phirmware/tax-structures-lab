@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatGBP, formatPct } from '../../lib/format';
+import { BADR_RATE, DIV_HIGHER } from '../../lib/constants';
 
 export function LessonFour() {
   return (
@@ -69,9 +70,9 @@ export function LessonFour() {
 
 const RATES = {
   salary: { label: 'Salary (40% IT + 2% NI)', rate: 0.42, lever: 'Top slice IT + NI' },
-  dividend: { label: 'Dividend (higher rate)', rate: 0.3375, lever: 'IT-class but lower bands' },
+  dividend: { label: 'Dividend (higher rate)', rate: DIV_HIGHER, lever: 'IT-class but lower bands' },
   cgt: { label: 'Capital gains (24%)', rate: 0.24, lever: 'Capital gains tax band' },
-  badr: { label: 'BADR capital gain (14%)', rate: 0.14, lever: 'Special founder relief' },
+  badr: { label: `BADR capital gain (${formatPct(BADR_RATE)})`, rate: BADR_RATE, lever: 'Special founder relief' },
 };
 
 function ClassificationWidget() {

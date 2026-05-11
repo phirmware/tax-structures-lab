@@ -32,7 +32,7 @@ export const PATTERNS: Pattern[] = [
     why:
       'Lower CGT rates exist to reward investment risk. Without them, capital allocation would skew toward consumption.',
     examples: [
-      'UK BADR 14% on first £1m vs 47% top personal',
+      'UK BADR 18% on first £1m vs 47% top personal',
       'US QSBS — up to $10m gain federally tax-free',
       'Canada Lifetime Capital Gains Exemption',
     ],

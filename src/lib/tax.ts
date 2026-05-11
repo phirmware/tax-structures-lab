@@ -46,6 +46,13 @@ export function personalAllowance(grossIncome: number): number {
   return Math.max(0, PERSONAL_ALLOWANCE - reduction);
 }
 
+function taxableBandLimits(personalAllowanceUsed: number) {
+  return {
+    basicEnd: BASIC_RATE_LIMIT - PERSONAL_ALLOWANCE,
+    higherEnd: HIGHER_RATE_LIMIT - personalAllowanceUsed,
+  };
+}
+
 // ---------- Income tax on a salary (rUK) ----------
 // Treats `salary` as the only earned income. For combined cases see computeMix.
 
@@ -65,8 +72,7 @@ export function incomeTaxOnSalary(salary: number): ITBreakdown {
   // Bands measured against the *original* thresholds, but applied to taxable amount.
   // Basic rate band runs from 0 → (BASIC_RATE_LIMIT - PA_FULL) of taxable income.
   // We recompute thresholds on taxable income for clarity.
-  const basicEnd = BASIC_RATE_LIMIT - PERSONAL_ALLOWANCE; // 37,700
-  const higherEnd = HIGHER_RATE_LIMIT - PERSONAL_ALLOWANCE; // 112,570
+  const { basicEnd, higherEnd } = taxableBandLimits(pa);
 
   const inBasic = Math.min(taxable, basicEnd);
   const inHigher = Math.max(0, Math.min(taxable, higherEnd) - basicEnd);
@@ -209,8 +215,7 @@ export function computeSalaryAndDividends(
   const paUsedBySalary = salary - salaryTaxable;
   const paLeft = Math.max(0, pa - paUsedBySalary);
 
-  const basicEnd = BASIC_RATE_LIMIT - PERSONAL_ALLOWANCE; // 37,700
-  const higherEnd = HIGHER_RATE_LIMIT - PERSONAL_ALLOWANCE; // 112,570
+  const { basicEnd, higherEnd } = taxableBandLimits(pa);
 
   const salaryInBasic = Math.min(salaryTaxable, basicEnd);
   const salaryInHigher = Math.max(

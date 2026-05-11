@@ -9,6 +9,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { formatGBP, formatPct } from '../../lib/format';
+import { DIV_HIGHER } from '../../lib/constants';
 
 export function LessonNine() {
   return (
@@ -97,7 +98,7 @@ function PensionWidget() {
   // Withdrawal: 25% tax-free, 75% at 20% basic rate in retirement.
   //
   // Path B: dividend route. Company pays 25% main-rate CT on the profit, then
-  // declares a dividend on the post-CT amount, which is taxed at 33.75% higher
+  // declares a dividend on the post-CT amount, which is taxed at the higher
   // rate. The remainder is invested personally at 5% (illustrative post-tax
   // accumulation rate that bakes in some CGT/dividend drag without picking a
   // specific wrapper).
@@ -106,7 +107,7 @@ function PensionWidget() {
     let pension = 0;
     let taxable = 0;
     const ctRate = 0.25; // illustrative main rate
-    const dividendTaxRate = 0.3375;
+    const dividendTaxRate = DIV_HIGHER;
     const pensionGrowth = 0.07;
     const taxableGrowth = 0.05;
 
@@ -221,7 +222,7 @@ function PensionWidget() {
         <Stat
           label="Taxable savings path"
           value={formatGBP(lastT)}
-          hint="After 25% CT + 33.75% dividend tax, 5% growth"
+          hint={`After 25% CT + ${formatPct(DIV_HIGHER)} dividend tax, 5% growth`}
         />
       </div>
       <p className="mt-3 text-xs text-ink-500 dark:text-ink-400">

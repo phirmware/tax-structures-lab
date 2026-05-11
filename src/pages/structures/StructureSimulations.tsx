@@ -426,7 +426,7 @@ function FicSim() {
       personal = personal * (1 + growth);
       // Yield income: taxed annually. FIC pays CT on yield (small-profits
       // rate as the conservative case); personal pays higher-rate dividend
-      // tax (33.75%) since most retail yield comes via dividends/interest at
+      // tax since most retail yield comes via dividends/interest at
       // higher-rate marginal.
       const ficYieldNet = fic * yieldRate * (1 - CT_SMALL_RATE);
       const personalYieldNet = personal * yieldRate * (1 - DIV_HIGHER);
@@ -495,7 +495,7 @@ function FicSim() {
         />
         <p className="text-[11px] text-ink-500 dark:text-ink-400">
           Illustrative. Yield inside the FIC pays CT (small-profits rate);
-          yield held personally pays 33.75% higher-rate dividend tax. Capital
+          yield held personally pays {formatPct(DIV_HIGHER)} higher-rate dividend tax. Capital
           growth is treated as deferred until extraction, when CT + dividend
           tax (FIC) or CGT (personal) applies.
         </p>
@@ -732,4 +732,3 @@ function Card({
     </div>
   );
 }
-
